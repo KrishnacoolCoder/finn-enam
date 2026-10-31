@@ -15,12 +15,12 @@ async function loadFeed(){try{
  filings=results[0];
  const ticker=$('feedTicker').value,cat=$('feedCategory').value,showDemo=$('showSynthetic').checked;
  const groups=results[1].filter(g=>(!ticker||g.ticker===ticker)&&(!cat||g.category===cat)&&(showDemo||g.filings.every(f=>f.source!=='synthetic_demo')));
- $('feedList').innerHTML=groups.length?groups.map(groupedHTML).join(''):'<div class="empty">No matching filings. Try a wider window or import an official BSE snapshot.</div>';
- $('feedSummary').textContent=`${groups.length} distinct event(s) · ${groups.filter(g=>g.score>=75).length} high priority · ${groups.reduce((a,g)=>a+g.count,0)} underlying filing(s). ${showDemo?'Synthetic included.':'Synthetic excluded.'}`;
+ $('feedList').innerHTML=groups.length?groups.map(groupedHTML).join(''):'<div class="empty">No matching filings in this time window. Automatic collection continues; choose a wider window to see older disclosures.</div>';
+ $('feedSummary').textContent=`${groups.length} distinct event(s) · ${new Set(groups.map(g=>g.ticker)).size}/20 companies · ${groups.filter(g=>g.score>=75).length} high priority · ${groups.reduce((a,g)=>a+g.count,0)} underlying filing(s). ${showDemo?'Synthetic included.':'Synthetic excluded.'}`;
  const overviewGroups=results[1].filter(g=>g.filings.every(f=>f.source!=='synthetic_demo'));
- $('overviewFilings').innerHTML=overviewGroups.slice(0,5).map(groupedHTML).join('')||'<div class="empty">No official announcements loaded. Upload a BSE snapshot.</div>';
+ $('overviewFilings').innerHTML=overviewGroups.slice(0,5).map(groupedHTML).join('')||'<div class="empty">No filings in this time window. Automatic collection continues; try Last 7 days.</div>';
  $('metricImportant').textContent=overviewGroups.filter(g=>g.score>=75).length;
- await loadDigest(false);
+ await loadDigest(false);if(feedFreshness)paintFreshness();
  }catch(e){toast(e.message)}}
 async function loadMarket(){const b=$('refreshBtn');b.disabled=true;b.textContent='Fetching EOD data…';try{marketRows=await req('/markets?limit=20');hasMarket=true;const triggered=marketRows.filter(x=>x.alerts.length);$('metricMarket').textContent=triggered.length;$('overviewMarket').innerHTML=triggered.length?triggered.slice(0,6).map(x=>`<div class="event"><span class="event-icon">↗</span><div><div class="event-title">${esc(x.ticker)} ${x.price_change_pct>=0?'+':''}${x.price_change_pct}%</div><div class="event-meta">${x.date} · Volume ${x.volume_multiple??'—'}× usual · ${esc(x.alerts.join(' + '))} alert</div></div></div>`).join(''):'<div class="empty">'+(marketRows.some(x=>x.status==='live_eod')?'No unusual movements crossed your current thresholds.':'Live market data unavailable. Check internet access and yfinance installation.')+'</div>';await loadAlerts();toast('Market refresh finished.')}catch(e){toast(e.message)}finally{b.disabled=false;b.textContent='↻ Refresh market data'}}
 async function loadStatus(){try{const x=await req('/demo/status');$('metricDocs').textContent=x.documents}catch{}}
@@ -129,7 +129,7 @@ async function loadDigest(showToast=true){
  try{const hours=$('window').value;const d=await req(`/digest?hours=${hours}&portfolio_only=true`);
    $('digestDownload').href=`/api/digest/export?hours=${hours}&portfolio_only=true`;
    $('digestSummary').textContent=`${d.high_priority_events} high-priority · ${d.events_total} events · ${d.coverage.portfolio_with_filings}/${d.coverage.portfolio_companies} companies with filings · ${d.market_alerts.length} cached EOD alerts`;
-   $('digestTop').innerHTML=d.events.slice(0,3).map(g=>`<div class="brief-item"><small>${esc(g.ticker)} · PRIORITY ${g.score}</small><b>${esc(g.title)}</b><small>${esc(g.priority_reason)}</small></div>`).join('')||'<p class="short-status">No source-linked portfolio filings in this window. Import the BSE snapshot to populate the brief.</p>';
+   $('digestTop').innerHTML=d.events.slice(0,3).map(g=>`<div class="brief-item"><small>${esc(g.ticker)} · PRIORITY ${g.score}</small><b>${esc(g.title)}</b><small>${esc(g.priority_reason)}</small></div>`).join('')||'<p class="short-status">No source-linked portfolio filings in this window. Widen the window or wait for the next automatic check.</p>';
    if(showToast)toast('Daily brief updated from source-linked records.');
  }catch(e){if(showToast)toast(e.message)}
 }
@@ -149,19 +149,28 @@ async function loadAlerts(){
  try{const items=await req('/alerts?limit=12');$('alertHistory').innerHTML=items.length?items.map(a=>`<div class="event"><span class="event-icon">!</span><div><div class="event-title">${esc(a.ticker)} · ${esc(a.alert_type.toUpperCase())}</div><div class="event-meta">EOD ${esc(a.market_date)} · Price ${a.price_change_pct??'—'}% · Volume ${a.volume_multiple??'—'}×</div></div></div>`).join(''):'<p class="short-status">No recorded alerts yet. Refresh EOD prices to evaluate your chosen thresholds.</p>'}catch(e){$('alertHistory').textContent='Stored alert history unavailable.'}
 }
 
-// Read persisted collection status; repaint age without changing its timestamp.
-let feedFreshness = null;
+// Poll saved collection state; only reload filings when the dataset changes.
+let feedFreshness=null,lastFeedChange=null,feedStatusSeen=false;
 function paintFreshness(){
  const el=$('feedFreshness');
  if(!feedFreshness){el.textContent='Update status unavailable';return}
- const stamp=Date.parse(feedFreshness.last_updated);
- const age=Number.isFinite(stamp)?Math.max(0,Math.floor((Date.now()-stamp)/60000)):null;
- el.textContent=(age===null?'Update time unknown':`Last updated ${age} min ago`)+` · ${feedFreshness.source}`;
+ const stamp=Date.parse(feedFreshness.last_success),age=Number.isFinite(stamp)?Math.max(0,Math.floor((Date.now()-stamp)/60000)):null;
+ el.textContent=(age===null?'Automatic check pending':`Checked ${age} min ago`)+` · ${feedFreshness.source}`;
+ $('autoFeedStatus').textContent=(feedFreshness.running?'Collecting announcements… ':age===null?'Waiting for the next collection. ':`Last successful check ${age} min ago. `)+`${feedFreshness.filings_total} filings from ${feedFreshness.companies_with_filings}/20 companies stored. Checks every 15 minutes.`+(feedFreshness.errors?.length?` ${feedFreshness.errors.length} company/source checks failed; saved filings remain available.`:'');
+ $('widenFeedBtn').hidden=Number($('window').value)>=168||filings.length>0;
 }
 async function refreshFreshness(){
- try{feedFreshness=await req('/ingest/status')}catch{feedFreshness=null}
- paintFreshness();
+ try{
+  const value=await req('/feed/status');feedFreshness=value;paintFreshness();
+  if(feedStatusSeen&&(value.last_added_at||null)!==lastFeedChange)await loadFeed();
+  lastFeedChange=value.last_added_at||null;feedStatusSeen=true;
+ }catch{feedFreshness=null;paintFreshness()}
 }
+$('checkFeedBtn').addEventListener('click',async()=>{
+ const button=$('checkFeedBtn');button.disabled=true;
+ try{feedFreshness=await req('/feed/refresh',{method:'POST'});paintFreshness();await loadFeed();toast(feedFreshness.running?'Automatic collection is running. New filings appear when it finishes.':'Collection is scheduled every 15 minutes; showing saved filings.')}catch(e){toast(e.message)}finally{button.disabled=false}
+});
+$('widenFeedBtn').addEventListener('click',()=>{$('window').value='168';loadFeed()});
 refreshFreshness();
 setInterval(refreshFreshness,60000);
 

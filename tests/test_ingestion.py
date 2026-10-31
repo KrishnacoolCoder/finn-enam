@@ -95,7 +95,8 @@ def test_seed_export_wal_and_restore(client, tmp_path):
 def test_collector_exports_even_when_upload_fails(client, tmp_path, monkeypatch):
     from app import live_bse
     client.post('/api/ingest', json=[ITEM], headers=HEADERS)
-    monkeypatch.setattr(live_bse, 'sync_bse', lambda *args: {'source': 'snapshot'})
+    from app import automatic_feed
+    monkeypatch.setattr(automatic_feed, 'sync_sources', lambda **kwargs: {'source': 'snapshot'})
     class Session:
         def __enter__(self): return self
         def __exit__(self, *args): pass

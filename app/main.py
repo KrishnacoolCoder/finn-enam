@@ -25,6 +25,8 @@ from .screener_context import router as company_context_router
 app.include_router(company_context_router)
 from .primary_reports import router as primary_reports_router
 app.include_router(primary_reports_router)
+from .automatic_feed import router as automatic_feed_router
+app.include_router(automatic_feed_router)
 init()
 setup_financials()
 STATIC=Path(__file__).resolve().parents[1]/'static'
@@ -163,7 +165,7 @@ async def upload_bse_feed(file:UploadFile=File(...),scope:str=Query('portfolio',
 def filings(hours:int=Query(24,ge=1,le=8760),min_priority:int=Query(0,ge=0,le=100)):
     cutoff=(datetime.now(timezone.utc)-timedelta(hours=hours)).isoformat()
     with connection() as c:
-        rows=c.execute('SELECT * FROM filings WHERE published>=? ORDER BY published DESC LIMIT 2000',(cutoff,)).fetchall()
+        rows=c.execute('SELECT * FROM filings WHERE julianday(published)>=julianday(?) ORDER BY julianday(published) DESC LIMIT 2000',(cutoff,)).fetchall()
     output=[]
     for r in rows:
         item=dict(r)

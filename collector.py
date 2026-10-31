@@ -55,11 +55,9 @@ def destination(value):
     return urlunsplit((parsed.scheme, parsed.netloc, path, '', ''))
 
 
-def run_once(url, token, *, days=3, seed=SEED):
-    from app.live_bse import IST, sync_bse
-
-    today = datetime.now(IST).date()
-    result = sync_bse(today - timedelta(days=days - 1), today)
+def run_once(url, token, *, days=30, seed=SEED):
+    from app.automatic_feed import sync_sources
+    result = sync_sources(days=days)
     now = datetime.now(timezone.utc).isoformat()
     previous = json.loads(storage.get_setting('feed_status', '{"last_updated": null}'))
     if result['source'] == 'live':
@@ -113,7 +111,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('url', help='Deployed app base URL or /api/ingest URL')
     parser.add_argument('--loop', type=float, metavar='MINUTES', help='Repeat; e.g. --loop 15')
-    parser.add_argument('--days', type=int, default=3)
+    parser.add_argument('--days', type=int, default=30)
     parser.add_argument('--seed', type=Path, default=SEED)
     args = parser.parse_args(argv)
     if args.loop is not None and (not 0 < args.loop < float('inf')):

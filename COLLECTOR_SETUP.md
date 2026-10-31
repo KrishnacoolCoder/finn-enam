@@ -16,11 +16,11 @@ replace your runtime DB or your current seed. No dependency changes are needed.
    ```
 
    You can use your Render URL instead. Omit `--loop 15` for one cycle.
-   `--days 3` is the default collection window (1–31 days supported).
+   `--days 30` is the default directory collection window (1–31 days supported). BSE RSS checks remain bounded to its recent rolling window.
    A full `/api/ingest` endpoint URL is accepted too. Ctrl+C stops the loop.
    Keep the laptop awake for collection to continue.
 
-3. Each cycle runs the existing BSE RSS sync locally, exports `seed/finn.sqlite3`,
+3. Each cycle runs BSE RSS plus automatic company announcement directory collection locally, exports `seed/finn.sqlite3`,
    and uploads the source-linked, non-synthetic local filings in batches of 500.
    Historical replay repairs missed uploads and host restarts. Each cycle also
    collects Google News RSS headline metadata for the 20 portfolio companies,
@@ -100,3 +100,19 @@ backup/restoration, news metadata/deduplication, news failure isolation, and a
 research import guard plus SQLite authorizer that denies research any news-table
 reads. External BSE and
 host connectivity were not exercised by these mocked/local tests.
+
+
+## Automatic signal feed
+
+Production Docker deployments now enable `FINN_AUTO_ANNOUNCEMENTS=1`. The server
+checks BSE RSS and public company announcement directories every 15 minutes while
+awake; the laptop collector uses the same collection pipeline as a backup.
+No XML upload is required for this workflow. Free-host sleep can pause the server
+scheduler until the next visit or collector request wakes it.
+
+The default Signal feed window is Last 7 days. Time filters retain actual
+publication dates and normalize timezone comparisons. The header shows the last
+successful check, not a promise of real-time or complete exchange coverage.
+Screener directory metadata is labeled as such and links to original BSE PDFs;
+directory notes are not PDF-verified. News stays in its separate context table.
+Manual imports and demo tools are available under Advanced.

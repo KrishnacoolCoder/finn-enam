@@ -5,7 +5,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     HOME=/home/user \
     FINN_DATA_DIR=/home/user/app/data \
-    FINN_AUTO_POLL_MINUTES=0
+    FINN_AUTO_POLL_MINUTES=0 \
+    FINN_AUTO_ANNOUNCEMENTS=1
 
 RUN useradd --create-home --uid 1000 user
 WORKDIR /home/user/app

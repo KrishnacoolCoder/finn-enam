@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from .core import classify, excerpt
 from .storage import connection
+from .automatic_feed import attachment_key
 
 router = APIRouter()
 
@@ -97,6 +98,9 @@ def ingest_announcements(
             for item in announcements:
                 old = db.execute('SELECT 1 FROM filings WHERE ticker=? AND url=?',
                                  (item.ticker, item.url)).fetchone()
+                if not old:
+                    key=attachment_key(item.url)
+                    old=any(attachment_key(r['url'])==key for r in db.execute('SELECT url FROM filings WHERE ticker=?',(item.ticker,)))
                 if old:
                     duplicates += 1
                     continue
@@ -118,5 +122,11 @@ def ingest_announcements(
             status.update(last_attempt=now, source=x_ingest_source if announcements else 'snapshot')
             db.execute('INSERT OR REPLACE INTO preferences VALUES (?,?)',
                        ('feed_status', json.dumps(status)))
+            if announcements and x_ingest_source=='live':
+                row=db.execute("SELECT value FROM preferences WHERE key='automatic_feed'").fetchone()
+                automatic=json.loads(row['value']) if row else {}
+                automatic.update(last_attempt=now,last_success=now,source='live',origin='laptop collector',errors=[])
+                if added:automatic['last_added_at']=now
+                db.execute('INSERT OR REPLACE INTO preferences VALUES (?,?)',('automatic_feed',json.dumps(automatic)))
     return {'received': len(announcements), 'added': added,
             'duplicates': duplicates, **status}

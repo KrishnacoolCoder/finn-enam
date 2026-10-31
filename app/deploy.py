@@ -20,6 +20,10 @@ restore_seed()
 from .main import app  # noqa: E402 - seed must be restored first
 from .storage import connection  # noqa: E402
 from .live_bse import IST, sync_bse  # noqa: E402
+from .automatic_feed import start_watcher,stop_watcher
+
+app.router.add_event_handler('startup',start_watcher)
+app.router.add_event_handler('shutdown',stop_watcher)
 
 
 @app.get("/health", tags=["health"])

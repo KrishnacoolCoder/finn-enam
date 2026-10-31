@@ -146,7 +146,8 @@ def test_news_upload_failure_does_not_break_collector(isolated, monkeypatch):
     import collector
     from app import live_bse
     news.store_news([item()])
-    monkeypatch.setattr(live_bse, 'sync_bse', lambda *args: {'source': 'snapshot'})
+    from app import automatic_feed
+    monkeypatch.setattr(automatic_feed, 'sync_sources', lambda **kwargs: {'source': 'snapshot'})
     monkeypatch.setattr(news, 'sync_news', lambda: {'errors': []})
     class Session:
         def __enter__(self): return self
