@@ -12,6 +12,7 @@ from app import research,storage
 def database(tmp_path,monkeypatch):
     monkeypatch.setattr(storage,'DB',tmp_path/'research.sqlite3');storage.init()
     monkeypatch.delenv('GEMINI_API_KEY',raising=False)
+    monkeypatch.delenv('GROQ_API_KEY',raising=False)
     monkeypatch.delenv('OPENAI_API_KEY',raising=False)
 
 

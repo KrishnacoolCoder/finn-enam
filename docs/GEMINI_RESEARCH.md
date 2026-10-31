@@ -23,7 +23,34 @@ $env:GEMINI_API_KEY='your-key'
 ```
 
 The example environment file is a template; it is not loaded automatically.
-Without a key, the app continues in extractive mode.
+Without either provider key, the app continues in extractive mode.
+
+## Groq backup
+
+Research uses **Gemini -> Groq -> extractive**. Each configured provider uses
+the identical source-only prompt and server-side quote/citation checks. A valid
+insufficient-evidence response is retained rather than shopping providers for a
+different answer.
+
+Create a key at [Groq Console](https://console.groq.com/keys). Add `GROQ_API_KEY`
+under the FINN service's Render Environment settings, then save/redeploy.
+Keep `GEMINI_API_KEY` to retain Gemini as primary. Groq also works alone when no
+Gemini key is configured. `GROQ_MODEL` defaults to `llama-3.3-70b-versatile`.
+The Groq integration uses the existing requests dependency and JSON-object mode;
+the server independently validates the response schema and evidence.
+
+The answer footer identifies Gemini, Groq or Extractive, and cached answers.
+Failures contain only allowlisted reason codes and optional HTTP status numbers:
+`rate_limited`, `authentication_failed`, `permission_denied`, `model_unavailable`,
+`invalid_request`, `request_timeout`, `invalid_evidence`, `provider_unavailable`.
+No raw exception messages, API keys, response bodies or private passages appear
+in diagnostics. Invalid evidence means quote/JSON validation failed; it does not
+prove that a key is invalid.
+
+Groq retries HTTP 429 at most twice with backoff, respecting short Retry-After
+values. Long quota waits fall back promptly. See the official
+[model documentation](https://console.groq.com/docs/model/llama-3.3-70b-versatile)
+and [rate limits](https://console.groq.com/docs/rate-limits).
 
 Gemini 2.5 Flash has a free tier subject to Google's project/model quotas. Using
 this SDK does not itself choose your project's billing tier. See Google's
@@ -54,8 +81,10 @@ this SDK does not itself choose your project's billing tier. See Google's
 The hash covers document identities, names, source URLs, original hashes, actual
 indexed text, and research/model policy versions. Added/changed documents
 invalidate prior answers. No-key extractive answers persist; temporary Gemini
-failure fallbacks cache for 60 seconds. Adding/removing a key switches modes
-without serving an old answer from the wrong mode. SQLite cache persists in the
+failure fallbacks and Groq backups after a Gemini failure cache for 60 seconds.
+Groq-only success can remain cached. Adding/removing/rotating a key or changing
+the Groq model bypasses the prior configuration's cache; keys are never stored
+in plaintext in cache records. SQLite cache persists in the
 runtime database and collector seed exports; a host reset restores the committed
 seed rather than any unexported runtime changes.
 

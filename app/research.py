@@ -11,8 +11,9 @@ from .core import excerpt,extract_guidance
 
 MAX_BYTES=20*1024*1024
 CHUNK_VERSION=2
-POLICY_VERSION='gemini-evidence-v3'
+POLICY_VERSION='multi-provider-evidence-v1'
 MODEL='gemini-2.5-flash'
+GROQ_DEFAULT_MODEL='llama-3.3-70b-versatile'
 
 
 def page_chunks(text, size=800, overlap=100):
@@ -172,7 +173,50 @@ def gemini_generate(key,question,results):
                 time.sleep(2**attempt+random.uniform(0,.25))
 
 
-def checked_answer(payload,results):
+def groq_generate(key,question,results):
+    import requests
+    context=[{'source_id':i,'file':r['document'],'page':r['page'],'text':r['text']}
+             for i,r in enumerate(results,1)]
+    schema_example={'insufficient_evidence':False,'claims':[{'source_id':1,'quote':'verbatim source passage'}]}
+    for attempt in range(3):
+        response=requests.post('https://api.groq.com/openai/v1/chat/completions',
+            headers={'Authorization':'Bearer '+key},
+            json={'model':os.environ.get('GROQ_MODEL',GROQ_DEFAULT_MODEL),
+                  'temperature':0,'max_completion_tokens':2500,
+                  'response_format':{'type':'json_object'},
+                  'messages':[{'role':'system','content':SYSTEM_INSTRUCTION+'\nJSON format: '+json.dumps(schema_example)},
+                              {'role':'user','content':json.dumps({'question':question,'sources':context},ensure_ascii=False)}]},
+            timeout=(4,20),allow_redirects=False)
+        if response.status_code==429 and attempt<2:
+            try:delay=float(response.headers.get('retry-after','0'))
+            except (TypeError,ValueError):delay=0
+            # Long quota waits should fall back promptly, never block a request.
+            if delay>5:response.raise_for_status()
+            time.sleep(max(2**attempt,delay)+random.uniform(0,.25))
+            continue
+        if not 200<=response.status_code<300:
+            response.raise_for_status()
+            raise ValueError('Unexpected provider response')
+        return json.loads(response.json()['choices'][0]['message']['content'])
+
+
+def failure_reason(exc):
+    """Allowlisted diagnostics only: never return exception text or raw bodies."""
+    status=getattr(exc,'code',None)
+    response=getattr(exc,'response',None)
+    if response is not None:status=getattr(response,'status_code',status)
+    try:status=int(status)
+    except (TypeError,ValueError):status=None
+    reason={400:'invalid_request',401:'authentication_failed',403:'permission_denied',
+            404:'model_unavailable',429:'rate_limited'}.get(status)
+    if not reason and type(exc).__name__ in {'Timeout','ReadTimeout','ConnectTimeout','WriteTimeout','PoolTimeout'}:
+        reason='request_timeout'
+    if not reason:
+        reason='invalid_evidence' if isinstance(exc,(ValueError,KeyError,TypeError,AttributeError)) else 'provider_unavailable'
+    return {'reason':reason,**({'http_status':status} if status and 100<=status<=599 else {})}
+
+
+def checked_answer(payload,results,provider='gemini'):
     """Only exact source quotes reach the UI; citation labels come from SQLite."""
     if not isinstance(payload,dict) or type(payload.get('insufficient_evidence')) is not bool:
         raise ValueError('Invalid evidence response')
@@ -192,7 +236,7 @@ def checked_answer(payload,results):
         if source not in citations:citations.append(source)
     if payload['insufficient_evidence'] or not lines:
         lines.insert(0,'insufficient evidence'+(' to answer every part of this question.' if lines else '.'))
-    return {'answer':'\n\n'.join(lines),'citations':citations,'mode':'gemini_grounded'}
+    return {'answer':'\n\n'.join(lines),'citations':citations,'mode':provider+'_grounded'}
 
 
 def extractive_answer(results):
@@ -208,24 +252,32 @@ def answer(ticker,question):
     question=' '.join(question.split())
     results=retrieve(ticker,question)
     if not results:return {'answer':'insufficient evidence. Upload a relevant primary PDF for this ticker or ask a more specific question.','citations':[],'mode':'no_sources','cached':False}
-    fingerprint=document_hash(ticker);key=os.environ.get('GEMINI_API_KEY','').strip()
+    keys={'gemini':os.environ.get('GEMINI_API_KEY','').strip(),
+          'groq':os.environ.get('GROQ_API_KEY','').strip()}
+    configured=[provider for provider,key in keys.items() if key]
+    # A changed/added/removed key or model must bypass previous mode/failure caches.
+    config=json.dumps([keys,os.environ.get('GROQ_MODEL',GROQ_DEFAULT_MODEL)],sort_keys=True)
+    fingerprint=hashlib.sha256((document_hash(ticker)+config).encode()).hexdigest()
     with closing(connection()) as db:
         cached=db.execute('SELECT payload,created FROM research_answers WHERE ticker=? AND question=? AND document_hash=?',
             (ticker,question,fingerprint)).fetchone()
     if cached:
         saved=json.loads(cached['payload'])
-        # Switching on a key must bypass old extractive results; transient failures
-        # are cached briefly so they do not disable Gemini for the document forever.
-        if ((key and saved['mode']=='gemini_grounded') or
-            (saved['mode']=='extractive' and bool(key)==saved.get('key_configured',False) and
-             (not key or datetime.now(timezone.utc)-datetime.fromisoformat(cached['created'])<timedelta(seconds=60)))):
+        # Secondary-provider/failure answers expire so the preferred provider can
+        # recover. Groq-only and keyless operation can use their cache indefinitely.
+        preferred=(configured[0]+'_grounded') if configured else 'extractive'
+        if saved['mode']==preferred or datetime.now(timezone.utc)-datetime.fromisoformat(cached['created'])<timedelta(seconds=60):
             return {**saved,'cached':True}
-    output=None
-    if key:
-        try:output=checked_answer(gemini_generate(key,question,results),results)
-        except Exception:pass  # Keys, SDK errors and private passages are never logged.
+    output=None;failures=[]
+    for provider,generate in [('gemini',gemini_generate),('groq',groq_generate)]:
+        if not keys[provider]:continue
+        try:
+            output=checked_answer(generate(keys[provider],question,results),results,provider)
+            break
+        except Exception as exc:
+            failures.append({'provider':provider,**failure_reason(exc)})
     if output is None:output=extractive_answer(results)
-    output.update(cached=False,key_configured=bool(key))
+    output.update(cached=False,key_configured=bool(configured),providers_configured=configured,provider_failures=failures)
     with closing(connection()) as db,db:
         db.execute('INSERT OR REPLACE INTO research_answers VALUES (?,?,?,?,?)',
             (ticker,question,fingerprint,json.dumps(output),datetime.now(timezone.utc).isoformat()))
