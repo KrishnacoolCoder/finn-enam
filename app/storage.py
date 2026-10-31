@@ -20,6 +20,10 @@ def init():
         CREATE TABLE IF NOT EXISTS documents (id INTEGER PRIMARY KEY AUTOINCREMENT, ticker TEXT NOT NULL, name TEXT NOT NULL, kind TEXT NOT NULL, source_url TEXT DEFAULT '', added TEXT NOT NULL, pages INTEGER DEFAULT 0);
         CREATE TABLE IF NOT EXISTS chunks (id INTEGER PRIMARY KEY AUTOINCREMENT, document_id INTEGER NOT NULL, page INTEGER NOT NULL, content TEXT NOT NULL, FOREIGN KEY(document_id) REFERENCES documents(id));
         CREATE INDEX IF NOT EXISTS chunks_doc_idx ON chunks(document_id);
+        CREATE TABLE IF NOT EXISTS filing_pdf_text (
+          ticker TEXT NOT NULL, url TEXT NOT NULL, content TEXT NOT NULL DEFAULT '',
+          attempted TEXT NOT NULL, PRIMARY KEY(ticker,url)
+        );
         CREATE TABLE IF NOT EXISTS preferences (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS company_context (
           ticker TEXT NOT NULL, basis TEXT NOT NULL, payload TEXT NOT NULL,

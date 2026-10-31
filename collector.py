@@ -77,6 +77,10 @@ def run_once(url, token, *, days=30, seed=SEED):
         rows = [dict(row) for row in db.execute('''SELECT ticker,title,published,url,source,excerpt
             FROM filings WHERE url LIKE 'https://%' AND source != 'synthetic_demo'
             ORDER BY id''')]
+        for row in rows:
+            cached=db.execute('SELECT content FROM filing_pdf_text WHERE ticker=? AND url=?',
+                              (row['ticker'],row['url'])).fetchone()
+            if cached and cached['content']:row['pdf_text']=cached['content']
     totals = {'added': 0, 'duplicates': 0}
     # Replay local history as well as today's rows: repairs missed uploads/restarts.
     batches = [rows[i:i + 500] for i in range(0, len(rows), 500)] or [[]]

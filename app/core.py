@@ -59,6 +59,11 @@ ROUTINE = [r'newspaper publication', r'newspaper advertisement',r'board meeting.
 
 def assess_filing(title: str, body: str='') -> dict:
     text=' '.join((title+' '+body[:1200]).lower().split())
+    # Recognise both role-first and person-first appointment/departure notices.
+    leadership=r'(?:\bcfo\b|\bceo\b|\bcoo\b|chief (?:financial|executive|operating) officer|\bdirector\b|company secretary|chairman|chairperson)'
+    change=r'\b(?:appoint(?:ed|ment)|resign(?:ed|ation)|retir(?:ed|ement))\b'
+    if re.search(change+r'.{0,180}'+leadership+'|'+leadership+r'.{0,180}'+change,text):
+        return {'category':'management_change','score':92,'reason':'Senior leadership change may affect execution and governance.','confidence':'rule-based'}
     # Avoid overclaiming based on a generic filing title or vague wording.
     for category,base,patterns in RULES:
         matched=next((pattern for pattern in patterns if re.search(pattern,text)),None)

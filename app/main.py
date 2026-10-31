@@ -15,6 +15,7 @@ from .bse_import import import_bse,MAX_XML_BYTES
 from .financials import setup as setup_financials,save_quarter,quarterly_snapshot,add_target,guidance_comparison,METRICS
 from .pdf_financials import discover_pdf, MAX_PDF_BYTES
 from .briefing import build_digest, markdown_digest
+from .management import extract_management_change, linked_pdf_text
 
 app=FastAPI(title='FINN | Investment Intelligence',version='4.0.0')
 from .ingestion import router as ingestion_router
@@ -172,6 +173,11 @@ def filings(hours:int=Query(24,ge=1,le=8760),min_priority:int=Query(0,ge=0,le=10
         assessment=assess_filing(item['title'],item['excerpt'] or '')
         item.update(category=assessment['category'],score=assessment['score'],priority_reason=assessment['reason'],assessment_confidence=assessment['confidence'])
         if item['score'] >= min_priority:output.append(item)
+    with connection() as c:
+        for item in output:
+            if item['category']=='management_change':
+                pdf_text=linked_pdf_text(c,item['ticker'],item['url'])
+                item['management_change']=extract_management_change(item['title'],pdf_text)
     return sorted(output,key=lambda x:(-x['score'],x['published']))
 
 @app.get('/api/digest')

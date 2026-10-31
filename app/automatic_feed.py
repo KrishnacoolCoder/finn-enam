@@ -139,6 +139,11 @@ def sync_sources(days=30):
             status['last_success']=datetime.now(timezone.utc).isoformat();status['source']='live'
         else:status['source']='snapshot'
         if status['added']:status['last_added_at']=datetime.now(timezone.utc).isoformat()
+        try:
+            from .management import cache_management_pdfs
+            cache_management_pdfs()
+        except Exception:
+            pass  # Optional PDF enrichment must never stop announcement collection.
     except Exception as exc:
         status['source']='snapshot';status['errors'].append({'error':type(exc).__name__})
     finally:

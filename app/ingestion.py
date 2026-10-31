@@ -37,6 +37,7 @@ class Announcement(BaseModel):
     source: str = Field(default='laptop collector', max_length=120)
     excerpt: str = Field(default='', max_length=4000)
     description: str = Field(default='', max_length=4000)
+    pdf_text: str = Field(default='', max_length=150000)
 
     @field_validator('ticker')
     @classmethod
@@ -96,6 +97,10 @@ def ingest_announcements(
         db.execute('BEGIN IMMEDIATE')
         with db:
             for item in announcements:
+                if item.pdf_text and classify(item.title,item.excerpt)[0]=='management_change':
+                    db.execute('''INSERT INTO filing_pdf_text(ticker,url,content,attempted) VALUES (?,?,?,?)
+                        ON CONFLICT(ticker,url) DO UPDATE SET content=excluded.content,attempted=excluded.attempted''',
+                        (item.ticker,item.url,item.pdf_text,now))
                 old = db.execute('SELECT 1 FROM filings WHERE ticker=? AND url=?',
                                  (item.ticker, item.url)).fetchone()
                 if not old:
