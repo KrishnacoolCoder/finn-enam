@@ -115,6 +115,13 @@ def test_filter_irrelevant_business_overview(database):
     assert research.retrieve('TESTCO','What products does the business distribute?')[0]['document']=='overview.txt'
 
 
+def test_long_card_prompt_does_not_dilute_real_numeric_evidence(database):
+    source(text='Consolidated revenue from operations increased by 23% to INR 1946 crore in FY2026. '+
+           'The capacity programme supports expansion of generation assets and operational efficiency. '*35)
+    question='Financial snapshot: Summarize reported revenue, EBITDA, PAT, margins, debt and cash flow with units and periods.'
+    assert research.retrieve('TESTCO',question)
+
+
 def test_legacy_migration_retains_pages_and_overlap(database):
     words=[f'word{i}' for i in range(500)]
     with storage.connection() as db:

@@ -11,7 +11,7 @@ from .core import excerpt,extract_guidance
 
 MAX_BYTES=20*1024*1024
 CHUNK_VERSION=2
-POLICY_VERSION='gemini-evidence-v1'
+POLICY_VERSION='gemini-evidence-v2'
 MODEL='gemini-2.5-flash'
 
 
@@ -111,7 +111,10 @@ def retrieve(ticker,question,top_k=8):
     texts=[r['content'] for r in rows]
     vectorizer=TfidfVectorizer(stop_words='english',ngram_range=(1,2),max_features=30000)
     try:
-        mat=vectorizer.fit_transform(texts+[question]); scores=cosine_similarity(mat[-1],mat[:-1]).ravel()
+        # Fit the vocabulary on documents only: long card prompts must not dilute
+        # relevance with instruction words that never occur in the source corpus.
+        mat=vectorizer.fit_transform(texts)
+        scores=cosine_similarity(vectorizer.transform([question]),mat).ravel()
     except ValueError:return []
     indices=scores.argsort()[::-1][:top_k]
     return [{'chunk_id':rows[int(i)]['id'],'document_id':rows[int(i)]['doc_id'],'document':rows[int(i)]['name'],'page':rows[int(i)]['page'],'source_url':rows[int(i)]['source_url'],'score':round(float(scores[i]),3),'text':rows[int(i)]['content']} for i in indices if scores[i]>.035]
