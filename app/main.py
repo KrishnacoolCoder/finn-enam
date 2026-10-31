@@ -1,13 +1,13 @@
 from __future__ import annotations
-import os,re,json,time,threading
+import os,re,json,time,threading,uuid
 from pathlib import Path
 from datetime import datetime,timezone,timedelta
 from urllib.parse import urlparse
 from fastapi import FastAPI,HTTPException,UploadFile,File,Form,Query
 from fastapi.responses import FileResponse, PlainTextResponse
-from pydantic import BaseModel,Field
+from pydantic import BaseModel,Field,field_validator
 import requests
-from .core import PORTFOLIO,classify,assess_filing,signals,excerpt
+from .core import PORTFOLIO,CATEGORIES,classify,assess_filing,signals,excerpt
 from .storage import init,connection,get_setting,set_setting,DATA
 from .research import ingest,list_docs,answer,guidance,MAX_BYTES
 from .announcements import sync_nse
@@ -84,6 +84,15 @@ class Settings(BaseModel):
     price_threshold:float=Field(ge=0.1,le=99)
     volume_threshold:float=Field(ge=1.01,le=100)
     min_priority:int=Field(ge=0,le=100)
+    event_types:list[str]|None=Field(default=None,max_length=30)
+
+    @field_validator('event_types')
+    @classmethod
+    def valid_events(cls,value):
+        if value is None:return value
+        if any(x not in {*CATEGORIES,'unclassified'} for x in value):
+            raise ValueError('Unknown event type')
+        return list(dict.fromkeys(value))
 
 @app.get('/')
 def index():return FileResponse(STATIC/'index.html')
@@ -103,13 +112,30 @@ def health():return {'ok':True,'product':'FINN','version':'4.0.0'}
 def portfolio():return [{'ticker':t,'name':n,'sector':s} for t,n,s in PORTFOLIO]
 
 @app.get('/api/settings')
-def settings():return {k:float(get_setting(k,str(v))) if k!='min_priority' else int(get_setting(k,str(v))) for k,v in [('price_threshold',5),('volume_threshold',2),('min_priority',40)]}
+def settings():
+    result={k:float(get_setting(k,str(v))) if k!='min_priority' else int(get_setting(k,str(v))) for k,v in [('price_threshold',5),('volume_threshold',2),('min_priority',40)]}
+    try:events=json.loads(get_setting('event_types',json.dumps([*CATEGORIES,'unclassified'])))
+    except (ValueError,TypeError):events=[*CATEGORIES,'unclassified']
+    if not isinstance(events,list):events=[*CATEGORIES,'unclassified']
+    result['event_types']=[x for x in events if x in {*CATEGORIES,'unclassified'}]
+    result['revision']=get_setting('settings_revision','')
+    return result
 
 @app.put('/api/settings')
 def update_settings(p:Settings):
-    for k,v in p.model_dump().items():set_setting(k,v)
+    with connection() as db:
+        for k,v in p.model_dump().items():
+            if v is not None:db.execute('INSERT OR REPLACE INTO preferences VALUES (?,?)',
+                (k,json.dumps(v) if k=='event_types' else str(v)))
+        db.execute('INSERT OR REPLACE INTO preferences VALUES (?,?)',('settings_revision',uuid.uuid4().hex))
     with _cache_lock:_cache.clear()
     return settings()
+
+@app.get('/api/alerts/filings')
+def filing_alerts(hours:int=Query(168,ge=1,le=8760)):
+    saved=settings()
+    return [g for g in grouped_filings(hours=hours,min_priority=saved['min_priority'])
+            if g['category'] in saved['event_types'] and all(f['source']!='synthetic_demo' for f in g['filings'])]
 
 @app.get('/api/market/{ticker}')
 def market(ticker:str):return market_data(ticker_check(ticker))

@@ -1,10 +1,1146 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="theme-color" content="#0a1119"/><title>FINN — Investor Intelligence</title><link rel="icon" href="/favicon.ico" type="image/svg+xml"/><link rel="stylesheet" href="/static/style.css"/></head>
-<body><div class="app"><aside class="sidebar"><div class="brand"><span class="brand-icon">◈</span><span>FINN<small>INVESTMENT INTELLIGENCE</small></span></div><div class="nav-label">WORKSPACE</div><nav><button class="nav active" data-tab="overview"><span>▦</span> Overview</button><button class="nav" data-tab="feed"><span>◉</span> Intelligence feed</button><button class="nav" data-tab="research"><span>✧</span> AI research</button><button class="nav" data-tab="portfolio"><span>▤</span> Portfolio</button></nav><div class="side-bottom"><div class="side-caption">BUILT FOR DECISIONS</div><p>Less noise.<br><em>More conviction.</em></p><div class="version">FINN / release 4 • prototype</div></div></aside>
-<main class="main"><header class="topbar"><div class="crumb">YOUR WORKSPACE <span>/</span> <b id="crumb">Overview</b></div><div class="top-actions"><span id="feedFreshness" class="feed-freshness" role="status">Update time unknown · snapshot</span><span class="market-pill"><i></i> EOD DATA</span><button id="settingsBtn" class="icon-btn" aria-label="Alert settings">⚙</button><div class="avatar">F</div></div></header><div class="content">
-<section id="overview" class="view active"><div class="eyebrow">THE DAILY BRIEF / INDIA EQUITIES</div><div class="hero"><div><h1>Know what <em>matters.</em></h1><p>Signals across your portfolio, without the information overload.</p></div><button class="button ghost" id="refreshBtn">↻ Refresh market data</button></div><div class="summary" id="summary"><div class="metric"><div>TRACKED COMPANIES</div><strong>20</strong><small>Across 11 sectors</small></div><div class="metric"><div>IMPORTANT FILINGS</div><strong id="metricImportant">—</strong><small>In the selected window</small></div><div class="metric"><div>MARKET SIGNALS</div><strong id="metricMarket">—</strong><small>Latest available close</small></div><div class="metric"><div>RESEARCH DOCUMENTS</div><strong id="metricDocs">—</strong><small>Indexed primary sources</small></div></div><div class="columns"><div class="panel primary"><div class="panel-heading"><div><div class="eyebrow">01 / WHAT CHANGED</div><h2>Priority intelligence</h2></div><button class="text-btn" data-goto="feed">View all →</button></div><div id="overviewFilings" class="stack"><div class="empty">Loading intelligence…</div></div></div><div class="panel secondary"><div class="panel-heading"><div><div class="eyebrow">02 / MARKET WATCH</div><h2>Unusual moves</h2></div></div><div id="overviewMarket" class="stack"><div class="empty">Press “Refresh market data” to load end-of-day signals.</div></div><div class="alert-history"><div class="eyebrow">RECORDED EOD TRIGGERS</div><div id="alertHistory" class="stack"><p class="short-status">No stored triggers loaded.</p></div></div><div class="callout"><b>Build a better signal</b><p>Add exchange filings or upload original annual reports to unlock company-specific research.</p><button class="text-btn" data-goto="research">Open research →</button></div></div></div><section class="brief-panel" aria-label="Investor briefing"><div><div class="eyebrow">PORTFOLIO DAILY BRIEF</div><h2>Signal, not a firehose.</h2><p>A prioritized, source-linked readout of what changed across your holdings.</p><div id="digestSummary" class="brief-stats">Open the feed to import authentic exchange disclosures.</div></div><div class="brief-actions"><button class="button ghost" id="digestRefreshBtn">Build daily brief ↻</button><a class="button" id="digestDownload" href="/api/digest/export?hours=168">Download brief ↧</a></div><div id="digestTop" class="brief-items"></div></section><section class="panel market-context" aria-label="Market context"><div class="panel-heading"><h2>Market context</h2></div><p class="short-status">Headlines from Google News RSS · Secondary sources for context only. Excluded from research answers and filing priority scores.</p><div id="marketContext" class="news-list"><p class="short-status">Loading headlines…</p></div></section><div class="footnote">DATA PROVENANCE MATTERS · Every filing identifies its source. Seeded examples are clearly marked SYNTHETIC.</div></section>
-<section id="feed" class="view"><div class="eyebrow">INTELLIGENCE / PUSH</div><h1>Signal <em>feed.</em></h1><p class="subtitle">Relevant company developments, ranked by materiality — not chronology alone.</p><div class="toolbar"><label>TIME WINDOW<select id="window"><option value="24">Last 24 hours</option><option value="72">Last 3 days</option><option value="168" selected>Last 7 days</option><option value="720">Last 30 days</option><option value="2160">Last 90 days</option><option value="8760">Last 1 year</option></select></label><label>MINIMUM PRIORITY<select id="priority"><option value="0">All priorities</option><option value="40">Meaningful only</option><option value="75">High priority</option></select></label><label>COMPANY<select id="feedTicker"><option value="">All companies</option></select></label><label>EVENT TYPE<select id="feedCategory"><option value="">All event types</option></select></label><label class="checkbox-control"><input id="showSynthetic" type="checkbox"/> Show demos</label><button class="button ghost" id="feedExportBtn">Export investor brief ↧</button></div><div class="auto-feed-panel"><div class="eyebrow">AUTOMATIC ANNOUNCEMENT COLLECTION</div><p id="autoFeedStatus" role="status">Checking automatic update status…</p><p class="short-status">Checks BSE RSS and recent company announcement directories every 15 minutes while the service is awake. Each filing keeps its original BSE link. Directory summaries are not PDF-verified.</p><button id="checkFeedBtn" class="button ghost">↻ Check update status</button><button id="widenFeedBtn" class="text-btn" hidden>Show last 7 days →</button></div><details class="advanced-feed"><summary>Advanced: manual filing and snapshot tools</summary><div class="toolbar"><button class="button" id="addFilingBtn">+ Add filing</button><button class="button ghost" id="seedBtn">Load demo examples</button><button class="button ghost" id="loadBundledBtn">Load verified BSE sample</button></div><div class="import-panel"><div><div class="eyebrow">OFFICIAL BSE / SNAPSHOT IMPORT</div><p>Upload the BSE RSS XML or TXT you saved from the exchange. This imports source-linked disclosures and safely removes duplicates.</p></div><form id="bseForm"><label class="field-label" for="bseScope">IMPORT SCOPE</label><select id="bseScope"><option value="portfolio">My 20-company portfolio</option><option value="all">All equity announcements in snapshot</option></select><label class="upload-target">↑ &nbsp; Select BSE XML / TXT<input id="bseFile" type="file" accept=".xml,.rss,.txt" required hidden/></label><small id="bseFileName">No feed selected</small><button type="submit" class="button" id="bseImportBtn">Import BSE snapshot</button></form><p class="import-result" id="bseResult" aria-live="polite"></p></div></details><div id="feedSummary" class="feed-summary" aria-live="polite"></div><div id="feedList" class="feed-list"><div class="empty">Loading…</div></div><div class="footnote">AUTOMATIC FEED · Displays collected filings within your selected time window. Rolling sources can miss announcements; original PDF links and source labels are retained.</div></section>
-<section id="research" class="view"><div class="eyebrow">INTELLIGENCE / PULL</div><h1>Ask better <em>questions.</em></h1><p class="subtitle">Research anchored in original company documents. Every answer exposes supporting passages.</p><div class="research-grid"><div class="panel research-left"><div class="eyebrow">01 / COMPANY</div><label class="field-label" for="ticker">NSE SYMBOL</label><input id="ticker" list="portfolioTickers" placeholder="e.g. RELIANCE" value="RELIANCE"/><datalist id="portfolioTickers"></datalist><p id="reportStatus" class="short-status" role="status">Primary reports load automatically for the 20 portfolio companies.</p><div id="sourceLinks" class="source-links"></div><details class="company-context" open><summary>Screener company snapshot</summary><label for="contextBasis">Reporting basis</label><select id="contextBasis"><option value="consolidated">Consolidated</option><option value="standalone">Standalone</option></select><div id="companyContext" aria-live="polite"><p class="short-status">Select a company to load its public ratios and quarterly results.</p></div></details><div class="line"></div><div class="eyebrow">02 / SOURCE MATERIAL</div><div id="docList" class="docs"></div><form id="uploadForm"><label class="field-label" for="docKind">DOCUMENT TYPE</label><select id="docKind"><option value="annual_report">Annual report</option><option value="transcript">Earnings-call transcript</option><option value="quarterly_results">Quarterly results</option><option value="investor_presentation">Investor presentation</option></select><label class="upload-target">↑ &nbsp; Select PDF or TXT document<input type="file" id="file" accept=".pdf,.txt" required hidden/></label><div class="selected-file" id="fileName">No document selected</div><label class="field-label" for="docSource">OFFICIAL DOCUMENT URL (OPTIONAL)</label><input id="docSource" type="url" placeholder="https:// company investor relations / original PDF"/><button type="submit" class="button full">Index primary document</button></form><div class="line"></div><details class="financial-tools"><summary>▤ Quarterly numbers & guidance comparison</summary><p>Values are displayed in Rs crore and calendar-year quarters (not Indian fiscal quarters). Choose standalone or consolidated and verify the source PDF page before saving. Comparisons are only made for the same basis.</p><div class="pdf-extractor"><div class="eyebrow">SOURCE-BOUND FIGURE EXTRACTION</div><p>Upload an original quarterly-results PDF. FINN finds candidate numbers with page evidence. Select the correct reporting column and review figures before saving.</p><form id="extractForm"><label class="upload-target">↑ &nbsp; Select quarterly results PDF<input id="extractFile" type="file" accept=".pdf" required hidden/></label><div class="selected-file" id="extractFileName">No PDF selected</div><button type="submit" class="button full">Extract candidate figures</button></form><div id="extractStatus" class="selected-file"></div><div id="extractCandidates"></div></div><hr/><form id="quarterForm"><label>Reporting basis<select id="qBasis" required><option value="consolidated">Consolidated</option><option value="standalone">Standalone</option></select></label><label>Original PDF page (optional)<input id="qPage" type="number" min="1" max="350" placeholder="e.g. 5"/></label><label>Calendar quarter<input id="quarterPeriod" value="2026-Q3" pattern="20[0-9]{2}-Q[1-4]" required/></label><div class="number-grid"><label>Revenue<input id="qRevenue" type="number" step="any"/></label><label>EBITDA<input id="qEbitda" type="number" step="any"/></label><label>PBT<input id="qPbt" type="number" step="any"/></label><label>PAT<input id="qPat" type="number" step="any"/></label></div><label>Original results PDF URL<input id="qSource" type="url" pattern="https://.*" placeholder="https://..." required/></label><label>Evidence and metric definitions<textarea id="qNotes" maxlength="3000"></textarea></label><label class="verification-check"><input id="qVerified" type="checkbox"/> I checked every entered figure, period, unit and basis against the source PDF. Verified by user; not independently audited.</label><button class="button full" type="submit">Save source-linked figures</button></form><hr/><form id="targetForm"><label>Target quarter<input id="targetPeriod" value="2026-Q3" pattern="20[0-9]{2}-Q[1-4]" required/></label><label>Metric<select id="targetMetric"><option value="revenue">Revenue</option><option value="ebitda">EBITDA</option><option value="pbt">PBT</option><option value="pat">PAT</option></select></label><label>Guidance type<select id="targetKind"><option value="absolute">Absolute target (INR crore)</option><option value="yoy_growth_pct">YoY growth target (%)</option></select></label><label>Management target / growth %<input id="targetValue" type="number" step="any" required/></label><label>Reporting basis<select id="targetBasis"><option value="standalone">Standalone</option><option value="consolidated">Consolidated</option></select></label><label>In-line tolerance (Rs crore for absolute, percentage points for growth)<input id="targetTolerance" type="number" min="0" step="any" value="0" required/></label><label>Exact source quote<textarea id="targetQuote" minlength="5" maxlength="3000" required></textarea></label><label>Guidance statement / interpretation<input id="targetStatement" required placeholder="Management expects..."></label><label>Original transcript URL<input id="targetSource" type="url" pattern="https://.*" placeholder="https://..." required/></label><button class="button full" type="submit">Save guidance target</button></form><button class="text-btn" id="compareBtn" type="button">Show quarterly trends & guidance →</button><div id="financialChart" class="financial-chart"></div><div id="financialOutput"></div></details><div class="line"></div><button class="text-btn" id="guidanceBtn">Extract candidate management guidance →</button><div id="guidanceList"></div></div><div class="panel research-right"><div class="research-top"><span class="eyebrow">FINN / RESEARCH COPILOT</span><span class="research-status">● SOURCE-BOUND</span></div><div class="research-cards" aria-label="Research questions"><button type="button" data-question="Business snapshot: What are the company&#x27;s main business segments, products, customers and business risks?">Business snapshot</button><button type="button" data-question="Financial snapshot: Summarize reported revenue, EBITDA, PAT, margins, debt and cash flow with units and periods.">Financial snapshot</button><button type="button" data-question="Guidance: What explicit management guidance or targets were given for revenue, margins, growth and capex, and for which period?">Guidance</button><button type="button" data-question="Narrative vs numbers: Compare management commentary and guidance with reported revenue, profitability, margins and cash flow. Use comparable periods and distinguish guidance from actual results.">Narrative vs numbers</button><button type="button" data-question="Bull vs bear: Identify documented business opportunities and risks, with evidence for both sides. Do not invent forecasts or investment recommendations.">Bull vs bear</button></div><div id="conversation" class="conversation"><div class="welcome-mark">✧</div><h2>Find the signal<br>inside the source.</h2><p>Select a portfolio company, or enter any NSE ticker and upload its PDF. Choose a research card or ask a question about the indexed documents.</p></div><form id="askForm" class="ask"><input id="question" placeholder="Ask about this company's filings…" required/><button type="submit" aria-label="Ask FINN">➜</button></form><div class="under-ask">Answers use your indexed documents only. Not investment advice.</div></div></div></section>
-<section id="portfolio" class="view"><div class="eyebrow">COVERAGE / INDIA</div><h1>Your <em>universe.</em></h1><p class="subtitle">Twenty NSE companies spanning India's market sectors. Search any NSE ticker in research.</p><div class="panel"><div class="panel-heading"><h2>Portfolio coverage</h2><span class="muted">20 companies</span></div><div id="portfolioList" class="portfolio-grid"></div></div></section>
-</div></main><nav class="bottom-nav"><button data-tab="overview" class="active">▦<span>Home</span></button><button data-tab="feed">◉<span>Feed</span></button><button data-tab="research">✧<span>Research</span></button><button data-tab="portfolio">▤<span>Portfolio</span></button></nav></div>
-<dialog id="settingsDialog"><form method="dialog" id="settingsForm"><div class="modal-heading"><h2>Alert thresholds</h2><button class="x" type="button" data-close="settingsDialog">×</button></div><p>Thresholds apply to the latest end-of-day market data.</p><label>Daily price move (%)<input id="priceThreshold" type="number" min="0.1" max="99" step="0.1" value="5" required/></label><label>Volume / prior 20-day average<input id="volumeThreshold" type="number" min="1.01" max="100" step="0.1" value="2" required/></label><button class="button full" type="submit">Save thresholds</button></form></dialog>
-<dialog id="filingDialog"><form id="filingForm"><div class="modal-heading"><h2>Add filing</h2><button class="x" type="button" data-close="filingDialog">×</button></div><p>Add a real disclosure with its original public source link.</p><label>NSE symbol<input name="ticker" placeholder="RELIANCE" required/></label><label>Announcement title<input name="title" required minlength="4"/></label><label>Publication date/time<input name="published" type="datetime-local" required/></label><label>Original filing URL<input name="url" type="url" placeholder="https://…"/></label><label>Excerpt / detail<textarea name="description" rows="3"></textarea></label><button class="button full" type="submit">Classify & add</button></form></dialog><div id="toast" role="status" aria-live="polite"></div><script src="/static/app.js" defer></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+  <meta content="#0a1119" name="theme-color"/>
+  <title>
+   FINN — Investor Intelligence
+  </title>
+  <link href="/favicon.ico" rel="icon" type="image/svg+xml"/>
+  <link href="/static/style.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#mainContent">
+   Skip to content
+  </a>
+  <div class="app">
+   <aside class="sidebar">
+    <div class="brand">
+     <span class="brand-icon">
+      ◈
+     </span>
+     <span>
+      FINN
+      <small>
+       INVESTMENT INTELLIGENCE
+      </small>
+     </span>
+    </div>
+    <div class="nav-label">
+     WORKSPACE
+    </div>
+    <nav aria-label="Main navigation">
+     <button aria-controls="overview" aria-current="page" aria-label="Brief" class="nav active" data-tab="overview" type="button">
+      <span aria-hidden="true">
+       ▦
+      </span>
+      <span>
+       Brief
+      </span>
+     </button>
+     <button aria-controls="feed" aria-label="Feed" class="nav" data-tab="feed" type="button">
+      <span aria-hidden="true">
+       ◉
+      </span>
+      <span>
+       Feed
+      </span>
+     </button>
+     <button aria-controls="research" aria-label="Research" class="nav" data-tab="research" type="button">
+      <span aria-hidden="true">
+       ✧
+      </span>
+      <span>
+       Research
+      </span>
+     </button>
+     <button aria-controls="portfolio" aria-label="Portfolio" class="nav" data-tab="portfolio" type="button">
+      <span aria-hidden="true">
+       ▤
+      </span>
+      <span>
+       Portfolio
+      </span>
+     </button>
+     <button aria-controls="alerts" aria-label="Alerts" class="nav" data-tab="alerts" type="button">
+      <span aria-hidden="true">
+       ♧
+      </span>
+      <span>
+       Alerts
+      </span>
+     </button>
+    </nav>
+    <div class="side-bottom">
+     <div class="side-caption">
+      BUILT FOR DECISIONS
+     </div>
+     <p>
+      Less noise.
+      <br/>
+      <em>
+       More conviction.
+      </em>
+     </p>
+     <div class="version">
+      FINN / release 4 • prototype
+     </div>
+    </div>
+   </aside>
+   <main class="main" id="mainContent">
+    <header class="topbar">
+     <div class="crumb">
+      YOUR WORKSPACE
+      <span>
+       /
+      </span>
+      <b id="crumb">
+       Brief
+      </b>
+     </div>
+     <div class="top-actions">
+      <span class="feed-freshness" id="feedFreshness" role="status">
+       Update time unknown · snapshot
+      </span>
+      <span class="market-pill">
+       <i>
+       </i>
+       EOD DATA
+      </span>
+      <button aria-label="Alert settings" class="icon-btn" id="settingsBtn" title="Open alert settings" type="button">
+       ⚙
+      </button>
+      <div class="avatar">
+       F
+      </div>
+     </div>
+    </header>
+    <div class="content">
+     <section aria-labelledby="overviewTitle" class="view active" id="overview" tabindex="-1">
+      <div class="eyebrow">
+       YOUR PORTFOLIO / INDIA EQUITIES
+      </div>
+      <div class="hero">
+       <div>
+        <h1 id="overviewTitle" tabindex="-1">
+         Know what
+         <em>
+          matters.
+         </em>
+        </h1>
+        <p>
+         Signals across your portfolio, without the information overload.
+        </p>
+       </div>
+       <button class="button ghost" id="refreshBtn" type="button">
+        ↻ Refresh market data
+       </button>
+      </div>
+      <div class="digest-controls">
+       <span class="field-label" id="digestWindowLabel">
+        DIGEST WINDOW
+       </span>
+       <div aria-labelledby="digestWindowLabel" class="segmented" role="group">
+        <button aria-pressed="true" data-digest-hours="24" type="button">
+         24h
+        </button>
+        <button aria-pressed="false" data-digest-hours="72" type="button">
+         3d
+        </button>
+        <button aria-pressed="false" data-digest-hours="168" type="button">
+         7d
+        </button>
+       </div>
+       <span class="short-status" id="digestWindowText">
+        Last 24 hours
+       </span>
+      </div>
+      <div class="summary" id="summary">
+       <div class="metric">
+        <div>
+         TRACKED COMPANIES
+        </div>
+        <strong>
+         20
+        </strong>
+        <small>
+         Across 11 sectors
+        </small>
+       </div>
+       <div class="metric">
+        <div>
+         IMPORTANT FILINGS
+        </div>
+        <strong id="metricImportant">
+         —
+        </strong>
+        <small>
+         In the selected window
+        </small>
+       </div>
+       <div class="metric">
+        <div>
+         MARKET SIGNALS
+        </div>
+        <strong id="metricMarket">
+         —
+        </strong>
+        <small>
+         Latest available close
+        </small>
+       </div>
+       <div class="metric">
+        <div>
+         RESEARCH DOCUMENTS
+        </div>
+        <strong id="metricDocs">
+         —
+        </strong>
+        <small>
+         Indexed primary sources
+        </small>
+       </div>
+      </div>
+      <div class="columns">
+       <div class="panel primary">
+        <div class="panel-heading">
+         <div>
+          <div class="eyebrow">
+           01 / WHAT CHANGED
+          </div>
+          <h2>
+           Priority intelligence
+          </h2>
+         </div>
+         <button class="text-btn" data-goto="feed" type="button">
+          View all →
+         </button>
+        </div>
+        <div aria-busy="true" class="stack" id="overviewFilings">
+         <span class="sr-only" role="status">
+          Loading…
+         </span>
+         <div aria-hidden="true" class="skeleton-card">
+          <span class="skeleton skeleton-line short">
+          </span>
+          <span class="skeleton skeleton-line">
+          </span>
+          <span class="skeleton skeleton-line medium">
+          </span>
+         </div>
+         <div aria-hidden="true" class="skeleton-card">
+          <span class="skeleton skeleton-line short">
+          </span>
+          <span class="skeleton skeleton-line">
+          </span>
+          <span class="skeleton skeleton-line medium">
+          </span>
+         </div>
+        </div>
+       </div>
+       <div class="panel secondary">
+        <div class="panel-heading">
+         <div>
+          <div class="eyebrow">
+           02 / MARKET WATCH
+          </div>
+          <h2>
+           Unusual moves
+          </h2>
+         </div>
+        </div>
+        <div class="stack" id="overviewMarket">
+         <div class="empty">
+          Press “Refresh market data” to load end-of-day signals.
+         </div>
+        </div>
+        <div class="alert-history">
+         <div class="eyebrow">
+          RECORDED EOD TRIGGERS
+         </div>
+         <div aria-busy="true" class="stack" id="alertHistory">
+          <span class="sr-only" role="status">
+           Loading…
+          </span>
+          <div aria-hidden="true" class="skeleton-card">
+           <span class="skeleton skeleton-line short">
+           </span>
+           <span class="skeleton skeleton-line">
+           </span>
+           <span class="skeleton skeleton-line medium">
+           </span>
+          </div>
+          <div aria-hidden="true" class="skeleton-card">
+           <span class="skeleton skeleton-line short">
+           </span>
+           <span class="skeleton skeleton-line">
+           </span>
+           <span class="skeleton skeleton-line medium">
+           </span>
+          </div>
+         </div>
+        </div>
+        <div class="callout">
+         <b>
+          Build a better signal
+         </b>
+         <p>
+          Add exchange filings or upload original annual reports to unlock company-specific research.
+         </p>
+         <button class="text-btn" data-goto="research" type="button">
+          Open research →
+         </button>
+        </div>
+       </div>
+      </div>
+      <section aria-label="Investor briefing" class="brief-panel">
+       <div>
+        <div class="eyebrow">
+         PORTFOLIO DAILY BRIEF
+        </div>
+        <h2>
+         Your investor brief.
+        </h2>
+        <p>
+         A prioritized, source-linked readout of what changed across your holdings.
+        </p>
+        <div class="brief-stats" id="digestSummary">
+         Loading your selected digest window…
+        </div>
+       </div>
+       <div class="brief-actions">
+        <button class="button ghost" id="digestRefreshBtn" type="button">
+         Build daily brief ↻
+        </button>
+        <a class="button" href="/api/digest/export?hours=168" id="digestDownload">
+         Download brief ↧
+        </a>
+       </div>
+       <div aria-busy="true" class="brief-items" id="digestTop">
+        <span class="sr-only" role="status">
+         Loading…
+        </span>
+        <div aria-hidden="true" class="skeleton-card">
+         <span class="skeleton skeleton-line short">
+         </span>
+         <span class="skeleton skeleton-line">
+         </span>
+         <span class="skeleton skeleton-line medium">
+         </span>
+        </div>
+        <div aria-hidden="true" class="skeleton-card">
+         <span class="skeleton skeleton-line short">
+         </span>
+         <span class="skeleton skeleton-line">
+         </span>
+         <span class="skeleton skeleton-line medium">
+         </span>
+        </div>
+       </div>
+      </section>
+      <section aria-label="Market context" class="panel market-context">
+       <div class="panel-heading">
+        <h2>
+         Market context
+        </h2>
+       </div>
+       <p class="short-status">
+        Headlines from Google News RSS · Secondary sources for context only. Excluded from research answers and filing priority scores.
+       </p>
+       <div aria-busy="true" class="news-list" id="marketContext">
+        <span class="sr-only" role="status">
+         Loading…
+        </span>
+        <div aria-hidden="true" class="skeleton-card">
+         <span class="skeleton skeleton-line short">
+         </span>
+         <span class="skeleton skeleton-line">
+         </span>
+         <span class="skeleton skeleton-line medium">
+         </span>
+        </div>
+        <div aria-hidden="true" class="skeleton-card">
+         <span class="skeleton skeleton-line short">
+         </span>
+         <span class="skeleton skeleton-line">
+         </span>
+         <span class="skeleton skeleton-line medium">
+         </span>
+        </div>
+       </div>
+      </section>
+      <div class="footnote">
+       DATA PROVENANCE MATTERS · Every filing identifies its source. Seeded examples are clearly marked SYNTHETIC.
+      </div>
+     </section>
+     <section aria-labelledby="feedTitle" class="view" hidden="" id="feed" tabindex="-1">
+      <div class="eyebrow">
+       INTELLIGENCE / PUSH
+      </div>
+      <h1 id="feedTitle" tabindex="-1">
+       Signal
+       <em>
+        feed.
+       </em>
+      </h1>
+      <p class="subtitle">
+       Relevant company developments, ranked by materiality — not chronology alone.
+      </p>
+      <div class="feed-controls">
+       <label>
+        TIME WINDOW
+        <select id="window">
+         <option value="24">
+          Last 24 hours
+         </option>
+         <option value="72">
+          Last 3 days
+         </option>
+         <option selected="" value="168">
+          Last 7 days
+         </option>
+         <option value="720">
+          Last 30 days
+         </option>
+         <option value="2160">
+          Last 90 days
+         </option>
+         <option value="8760">
+          Last 1 year
+         </option>
+        </select>
+       </label>
+       <details class="feed-filters">
+        <summary>
+         Filters &amp; tools
+        </summary>
+        <div class="toolbar">
+         <label>
+          MINIMUM PRIORITY
+          <select id="priority">
+           <option value="0">
+            All priorities
+           </option>
+           <option value="40">
+            Meaningful only
+           </option>
+           <option value="75">
+            High priority
+           </option>
+          </select>
+         </label>
+         <label>
+          COMPANY
+          <select id="feedTicker">
+           <option value="">
+            All companies
+           </option>
+          </select>
+         </label>
+         <label>
+          EVENT TYPE
+          <select id="feedCategory">
+           <option value="">
+            All event types
+           </option>
+          </select>
+         </label>
+         <label class="checkbox-control">
+          <input id="showSynthetic" type="checkbox"/>
+          Show demos
+         </label>
+         <button class="button ghost" id="feedExportBtn" type="button">
+          Export investor brief ↧
+         </button>
+        </div>
+        <details class="auto-feed-panel">
+         <summary>
+          Automatic source updates
+         </summary>
+         <div class="eyebrow">
+          AUTOMATIC ANNOUNCEMENT COLLECTION
+         </div>
+         <p id="autoFeedStatus" role="status">
+          Checking automatic update status…
+         </p>
+         <p class="short-status">
+          Checks BSE RSS and recent company announcement directories every 15 minutes while the service is awake. Each filing keeps its original BSE link. Directory summaries are not PDF-verified.
+         </p>
+         <button class="button ghost" id="checkFeedBtn" type="button">
+          ↻ Check update status
+         </button>
+         <button class="text-btn" hidden="" id="widenFeedBtn" type="button">
+          Show last 7 days →
+         </button>
+        </details>
+        <details class="advanced-feed">
+         <summary>
+          Advanced: manual filing and snapshot tools
+         </summary>
+         <div class="toolbar">
+          <button class="button" id="addFilingBtn" type="button">
+           + Add filing
+          </button>
+          <button class="button ghost" id="seedBtn" type="button">
+           Load demo examples
+          </button>
+          <button class="button ghost" id="loadBundledBtn" type="button">
+           Load verified BSE sample
+          </button>
+         </div>
+         <div class="import-panel">
+          <div>
+           <div class="eyebrow">
+            OFFICIAL BSE / SNAPSHOT IMPORT
+           </div>
+           <p>
+            Upload the BSE RSS XML or TXT you saved from the exchange. This imports source-linked disclosures and safely removes duplicates.
+           </p>
+          </div>
+          <form id="bseForm">
+           <label class="field-label" for="bseScope">
+            IMPORT SCOPE
+           </label>
+           <select id="bseScope">
+            <option value="portfolio">
+             My 20-company portfolio
+            </option>
+            <option value="all">
+             All equity announcements in snapshot
+            </option>
+           </select>
+           <label class="upload-target">
+            ↑   Select BSE XML / TXT
+            <input accept=".xml,.rss,.txt" hidden="" id="bseFile" required="" type="file"/>
+           </label>
+           <small id="bseFileName">
+            No feed selected
+           </small>
+           <button class="button" id="bseImportBtn" type="submit">
+            Import BSE snapshot
+           </button>
+          </form>
+          <p aria-live="polite" class="import-result" id="bseResult">
+          </p>
+         </div>
+        </details>
+       </details>
+      </div>
+      <div aria-live="polite" class="feed-summary" id="feedSummary">
+      </div>
+      <div aria-busy="true" class="feed-list" id="feedList">
+       <span class="sr-only" role="status">
+        Loading…
+       </span>
+       <div aria-hidden="true" class="skeleton-card">
+        <span class="skeleton skeleton-line short">
+        </span>
+        <span class="skeleton skeleton-line">
+        </span>
+        <span class="skeleton skeleton-line medium">
+        </span>
+       </div>
+       <div aria-hidden="true" class="skeleton-card">
+        <span class="skeleton skeleton-line short">
+        </span>
+        <span class="skeleton skeleton-line">
+        </span>
+        <span class="skeleton skeleton-line medium">
+        </span>
+       </div>
+      </div>
+      <div class="footnote">
+       AUTOMATIC FEED · Displays collected filings within your selected time window. Rolling sources can miss announcements; original PDF links and source labels are retained.
+      </div>
+     </section>
+     <section aria-labelledby="researchTitle" class="view" hidden="" id="research" tabindex="-1">
+      <div class="eyebrow">
+       INTELLIGENCE / PULL
+      </div>
+      <h1 id="researchTitle" tabindex="-1">
+       Ask better
+       <em>
+        questions.
+       </em>
+      </h1>
+      <p class="subtitle">
+       Research anchored in original company documents. Every answer exposes supporting passages.
+      </p>
+      <div class="research-grid">
+       <details class="panel research-left" open="">
+        <summary>
+         Company &amp; source documents
+        </summary>
+        <div class="eyebrow">
+         01 / COMPANY
+        </div>
+        <label class="field-label" for="ticker">
+         NSE SYMBOL
+        </label>
+        <input id="ticker" list="portfolioTickers" placeholder="e.g. RELIANCE" value="RELIANCE"/>
+        <datalist id="portfolioTickers">
+        </datalist>
+        <p class="short-status" id="reportStatus" role="status">
+         Primary reports load automatically for the 20 portfolio companies.
+        </p>
+        <div class="source-links" id="sourceLinks">
+        </div>
+        <details class="company-context" open="">
+         <summary>
+          Screener company snapshot
+         </summary>
+         <label for="contextBasis">
+          Reporting basis
+         </label>
+         <select id="contextBasis">
+          <option value="consolidated">
+           Consolidated
+          </option>
+          <option value="standalone">
+           Standalone
+          </option>
+         </select>
+         <div aria-live="polite" id="companyContext">
+          <p class="short-status">
+           Select a company to load its public ratios and quarterly results.
+          </p>
+         </div>
+        </details>
+        <div class="line">
+        </div>
+        <div class="eyebrow">
+         02 / SOURCE MATERIAL
+        </div>
+        <div aria-busy="true" class="docs" id="docList">
+         <span class="sr-only" role="status">
+          Loading…
+         </span>
+         <div aria-hidden="true" class="skeleton-card">
+          <span class="skeleton skeleton-line short">
+          </span>
+          <span class="skeleton skeleton-line">
+          </span>
+          <span class="skeleton skeleton-line medium">
+          </span>
+         </div>
+         <div aria-hidden="true" class="skeleton-card">
+          <span class="skeleton skeleton-line short">
+          </span>
+          <span class="skeleton skeleton-line">
+          </span>
+          <span class="skeleton skeleton-line medium">
+          </span>
+         </div>
+        </div>
+        <form id="uploadForm">
+         <label class="field-label" for="docKind">
+          DOCUMENT TYPE
+         </label>
+         <select id="docKind">
+          <option value="annual_report">
+           Annual report
+          </option>
+          <option value="transcript">
+           Earnings-call transcript
+          </option>
+          <option value="quarterly_results">
+           Quarterly results
+          </option>
+          <option value="investor_presentation">
+           Investor presentation
+          </option>
+         </select>
+         <label class="upload-target">
+          ↑   Select PDF or TXT document
+          <input accept=".pdf,.txt" hidden="" id="file" required="" type="file"/>
+         </label>
+         <div class="selected-file" id="fileName">
+          No document selected
+         </div>
+         <label class="field-label" for="docSource">
+          OFFICIAL DOCUMENT URL (OPTIONAL)
+         </label>
+         <input id="docSource" placeholder="https:// company investor relations / original PDF" type="url"/>
+         <button class="button full" type="submit">
+          Index primary document
+         </button>
+        </form>
+        <div class="line">
+        </div>
+        <details class="financial-tools">
+         <summary>
+          ▤ Quarterly numbers &amp; guidance comparison
+         </summary>
+         <p>
+          Values are displayed in Rs crore and calendar-year quarters (not Indian fiscal quarters). Choose standalone or consolidated and verify the source PDF page before saving. Comparisons are only made for the same basis.
+         </p>
+         <div class="pdf-extractor">
+          <div class="eyebrow">
+           SOURCE-BOUND FIGURE EXTRACTION
+          </div>
+          <p>
+           Upload an original quarterly-results PDF. FINN finds candidate numbers with page evidence. Select the correct reporting column and review figures before saving.
+          </p>
+          <form id="extractForm">
+           <label class="upload-target">
+            ↑   Select quarterly results PDF
+            <input accept=".pdf" hidden="" id="extractFile" required="" type="file"/>
+           </label>
+           <div class="selected-file" id="extractFileName">
+            No PDF selected
+           </div>
+           <button class="button full" type="submit">
+            Extract candidate figures
+           </button>
+          </form>
+          <div class="selected-file" id="extractStatus">
+          </div>
+          <div id="extractCandidates">
+          </div>
+         </div>
+         <hr/>
+         <form id="quarterForm">
+          <label>
+           Reporting basis
+           <select id="qBasis" required="">
+            <option value="consolidated">
+             Consolidated
+            </option>
+            <option value="standalone">
+             Standalone
+            </option>
+           </select>
+          </label>
+          <label>
+           Original PDF page (optional)
+           <input id="qPage" max="350" min="1" placeholder="e.g. 5" type="number"/>
+          </label>
+          <label>
+           Calendar quarter
+           <input id="quarterPeriod" pattern="20[0-9]{2}-Q[1-4]" required="" value="2026-Q3"/>
+          </label>
+          <div class="number-grid">
+           <label>
+            Revenue
+            <input id="qRevenue" step="any" type="number"/>
+           </label>
+           <label>
+            EBITDA
+            <input id="qEbitda" step="any" type="number"/>
+           </label>
+           <label>
+            PBT
+            <input id="qPbt" step="any" type="number"/>
+           </label>
+           <label>
+            PAT
+            <input id="qPat" step="any" type="number"/>
+           </label>
+          </div>
+          <label>
+           Original results PDF URL
+           <input id="qSource" pattern="https://.*" placeholder="https://..." required="" type="url"/>
+          </label>
+          <label>
+           Evidence and metric definitions
+           <textarea id="qNotes" maxlength="3000"></textarea>
+          </label>
+          <label class="verification-check">
+           <input id="qVerified" type="checkbox"/>
+           I checked every entered figure, period, unit and basis against the source PDF. Verified by user; not independently audited.
+          </label>
+          <button class="button full" type="submit">
+           Save source-linked figures
+          </button>
+         </form>
+         <hr/>
+         <form id="targetForm">
+          <label>
+           Target quarter
+           <input id="targetPeriod" pattern="20[0-9]{2}-Q[1-4]" required="" value="2026-Q3"/>
+          </label>
+          <label>
+           Metric
+           <select id="targetMetric">
+            <option value="revenue">
+             Revenue
+            </option>
+            <option value="ebitda">
+             EBITDA
+            </option>
+            <option value="pbt">
+             PBT
+            </option>
+            <option value="pat">
+             PAT
+            </option>
+           </select>
+          </label>
+          <label>
+           Guidance type
+           <select id="targetKind">
+            <option value="absolute">
+             Absolute target (INR crore)
+            </option>
+            <option value="yoy_growth_pct">
+             YoY growth target (%)
+            </option>
+           </select>
+          </label>
+          <label>
+           Management target / growth %
+           <input id="targetValue" required="" step="any" type="number"/>
+          </label>
+          <label>
+           Reporting basis
+           <select id="targetBasis">
+            <option value="standalone">
+             Standalone
+            </option>
+            <option value="consolidated">
+             Consolidated
+            </option>
+           </select>
+          </label>
+          <label>
+           In-line tolerance (Rs crore for absolute, percentage points for growth)
+           <input id="targetTolerance" min="0" required="" step="any" type="number" value="0"/>
+          </label>
+          <label>
+           Exact source quote
+           <textarea id="targetQuote" maxlength="3000" minlength="5" required=""></textarea>
+          </label>
+          <label>
+           Guidance statement / interpretation
+           <input id="targetStatement" placeholder="Management expects..." required=""/>
+          </label>
+          <label>
+           Original transcript URL
+           <input id="targetSource" pattern="https://.*" placeholder="https://..." required="" type="url"/>
+          </label>
+          <button class="button full" type="submit">
+           Save guidance target
+          </button>
+         </form>
+         <button class="text-btn" id="compareBtn" type="button">
+          Show quarterly trends &amp; guidance →
+         </button>
+         <div class="financial-chart" id="financialChart">
+         </div>
+         <div id="financialOutput">
+         </div>
+        </details>
+        <div class="line">
+        </div>
+        <button class="text-btn" id="guidanceBtn" type="button">
+         Extract candidate management guidance →
+        </button>
+        <div id="guidanceList">
+        </div>
+       </details>
+       <div class="panel research-right">
+        <div class="research-top">
+         <span class="eyebrow">
+          FINN / RESEARCH COPILOT
+         </span>
+         <span class="research-status">
+          ● SOURCE-BOUND
+         </span>
+        </div>
+        <div aria-label="Research questions" class="research-cards">
+         <button data-question="Business snapshot: What are the company's main business segments, products, customers and business risks?" type="button">
+          Business snapshot
+         </button>
+         <button data-question="Financial snapshot: Summarize reported revenue, EBITDA, PAT, margins, debt and cash flow with units and periods." type="button">
+          Financial snapshot
+         </button>
+         <button data-question="Guidance: What explicit management guidance or targets were given for revenue, margins, growth and capex, and for which period?" type="button">
+          Guidance
+         </button>
+         <button data-question="Narrative vs numbers: Compare management commentary and guidance with reported revenue, profitability, margins and cash flow. Use comparable periods and distinguish guidance from actual results." type="button">
+          Narrative vs numbers
+         </button>
+         <button data-question="Bull vs bear: Identify documented business opportunities and risks, with evidence for both sides. Do not invent forecasts or investment recommendations." type="button">
+          Bull vs bear
+         </button>
+        </div>
+        <div class="conversation" id="conversation">
+         <div class="welcome-mark">
+          ✧
+         </div>
+         <h2>
+          Find the signal
+          <br/>
+          inside the source.
+         </h2>
+         <p>
+          Select a portfolio company, or enter any NSE ticker and upload its PDF. Choose a research card or ask a question about the indexed documents.
+         </p>
+        </div>
+        <form class="ask" id="askForm">
+         <input id="question" placeholder="Ask about this company's filings…" required=""/>
+         <button aria-label="Ask FINN" type="submit">
+          ➜
+         </button>
+        </form>
+        <div class="under-ask">
+         Answers use your indexed documents only. Not investment advice.
+        </div>
+       </div>
+      </div>
+     </section>
+     <section aria-labelledby="portfolioTitle" class="view" hidden="" id="portfolio" tabindex="-1">
+      <div class="eyebrow">
+       COVERAGE / INDIA
+      </div>
+      <h1 id="portfolioTitle" tabindex="-1">
+       Your
+       <em>
+        universe.
+       </em>
+      </h1>
+      <p class="subtitle">
+       Twenty NSE companies spanning India's market sectors. Search any NSE ticker in research.
+      </p>
+      <div class="panel">
+       <div class="panel-heading">
+        <h2>
+         Portfolio coverage
+        </h2>
+        <span class="muted">
+         20 companies
+        </span>
+       </div>
+       <div class="portfolio-grid" id="portfolioList">
+       </div>
+      </div>
+     </section>
+     <section aria-labelledby="alertsTitle" class="view" hidden="" id="alerts" tabindex="-1">
+      <div class="eyebrow">
+       YOUR SIGNAL PREFERENCES
+      </div>
+      <h1 id="alertsTitle" tabindex="-1">
+       Alert
+       <em>
+        settings.
+       </em>
+      </h1>
+      <p class="subtitle">
+       Keep the signals that matter to you. Saved for this FINN workspace.
+      </p>
+      <div class="settings-grid">
+       <section class="panel">
+        <h2>
+         Market thresholds
+        </h2>
+        <p class="short-status">
+         Thresholds use end-of-day market data. Refresh market data to evaluate changes.
+        </p>
+        <form id="settingsForm">
+         <div class="number-grid">
+          <label for="priceThreshold">
+           Absolute daily price move (%)
+           <input id="priceThreshold" inputmode="decimal" max="99" min="0.1" required="" step="0.1" type="number" value="5"/>
+          </label>
+          <label for="volumeThreshold">
+           Volume / prior 20-day average
+           <input id="volumeThreshold" inputmode="decimal" max="100" min="1.01" required="" step="0.01" type="number" value="2"/>
+          </label>
+         </div>
+         <label for="alertMinPriority">
+          Minimum filing priority
+          <select id="alertMinPriority">
+           <option value="0">
+            All priorities
+           </option>
+           <option selected="" value="40">
+            40 · Meaningful
+           </option>
+           <option value="75">
+            75 · High priority
+           </option>
+           <option value="90">
+            90 · Most important
+           </option>
+          </select>
+         </label>
+         <fieldset>
+          <legend>
+           Filing event types
+          </legend>
+          <p class="short-status">
+           Choose types for in-app filing alerts. The full signal feed stays available.
+          </p>
+          <div class="choice-actions">
+           <button class="text-btn" id="eventsAll" type="button">
+            Select all
+           </button>
+           <button class="text-btn" id="eventsNone" type="button">
+            Clear all
+           </button>
+          </div>
+          <div aria-busy="true" class="event-choices" id="eventTypeChoices">
+          </div>
+         </fieldset>
+         <button class="button full" id="saveSettingsBtn" type="submit">
+          Save alert settings
+         </button>
+         <p aria-live="polite" class="short-status" id="settingsStatus" role="status">
+          Loading saved settings…
+         </p>
+        </form>
+       </section>
+       <div>
+        <section class="panel">
+         <div class="panel-heading">
+          <h2>
+           Filing alerts
+          </h2>
+          <button class="text-btn" id="alertsRefreshBtn" type="button">
+           Refresh
+          </button>
+         </div>
+         <p class="short-status">
+          Selected event types and minimum priority · last 7 days.
+         </p>
+         <div aria-busy="true" aria-live="polite" class="stack" id="filingAlerts">
+          <span class="sr-only" role="status">
+           Loading…
+          </span>
+          <div aria-hidden="true" class="skeleton-card">
+           <span class="skeleton skeleton-line short">
+           </span>
+           <span class="skeleton skeleton-line">
+           </span>
+           <span class="skeleton skeleton-line medium">
+           </span>
+          </div>
+          <div aria-hidden="true" class="skeleton-card">
+           <span class="skeleton skeleton-line short">
+           </span>
+           <span class="skeleton skeleton-line">
+           </span>
+           <span class="skeleton skeleton-line medium">
+           </span>
+          </div>
+         </div>
+        </section>
+        <section class="panel alert-history">
+         <h2>
+          Recorded market alerts
+         </h2>
+         <div aria-busy="true" class="stack" id="alertsEodHistory">
+          <span class="sr-only" role="status">
+           Loading…
+          </span>
+          <div aria-hidden="true" class="skeleton-card">
+           <span class="skeleton skeleton-line short">
+           </span>
+           <span class="skeleton skeleton-line">
+           </span>
+           <span class="skeleton skeleton-line medium">
+           </span>
+          </div>
+          <div aria-hidden="true" class="skeleton-card">
+           <span class="skeleton skeleton-line short">
+           </span>
+           <span class="skeleton skeleton-line">
+           </span>
+           <span class="skeleton skeleton-line medium">
+           </span>
+          </div>
+         </div>
+        </section>
+       </div>
+      </div>
+     </section>
+    </div>
+   </main>
+   <nav aria-label="Bottom navigation" class="bottom-nav">
+    <button aria-controls="overview" aria-current="page" aria-label="Brief" class="active" data-tab="overview" type="button">
+     <span aria-hidden="true">
+      ▦
+     </span>
+     <span>
+      Brief
+     </span>
+    </button>
+    <button aria-controls="feed" aria-label="Feed" class="" data-tab="feed" type="button">
+     <span aria-hidden="true">
+      ◉
+     </span>
+     <span>
+      Feed
+     </span>
+    </button>
+    <button aria-controls="research" aria-label="Research" class="" data-tab="research" type="button">
+     <span aria-hidden="true">
+      ✧
+     </span>
+     <span>
+      Research
+     </span>
+    </button>
+    <button aria-controls="portfolio" aria-label="Portfolio" class="" data-tab="portfolio" type="button">
+     <span aria-hidden="true">
+      ▤
+     </span>
+     <span>
+      Portfolio
+     </span>
+    </button>
+    <button aria-controls="alerts" aria-label="Alerts" class="" data-tab="alerts" type="button">
+     <span aria-hidden="true">
+      ♧
+     </span>
+     <span>
+      Alerts
+     </span>
+    </button>
+   </nav>
+  </div>
+  <dialog id="filingDialog">
+   <form id="filingForm">
+    <div class="modal-heading">
+     <h2>
+      Add filing
+     </h2>
+     <button class="x" data-close="filingDialog" type="button">
+      ×
+     </button>
+    </div>
+    <p>
+     Add a real disclosure with its original public source link.
+    </p>
+    <label>
+     NSE symbol
+     <input name="ticker" placeholder="RELIANCE" required=""/>
+    </label>
+    <label>
+     Announcement title
+     <input minlength="4" name="title" required=""/>
+    </label>
+    <label>
+     Publication date/time
+     <input name="published" required="" type="datetime-local"/>
+    </label>
+    <label>
+     Original filing URL
+     <input name="url" placeholder="https://…" type="url"/>
+    </label>
+    <label>
+     Excerpt / detail
+     <textarea name="description" rows="3"></textarea>
+    </label>
+    <button class="button full" type="submit">
+     Classify &amp; add
+    </button>
+   </form>
+  </dialog>
+  <div aria-atomic="true" aria-live="polite" id="toast" role="status">
+  </div>
+  <script defer="" src="/static/app.js">
+  </script>
+ </body>
+</html>

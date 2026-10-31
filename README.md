@@ -100,3 +100,7 @@ More information: `docs/ARCHITECTURE.md`, `docs/DEMO_AND_SUBMISSION.md`, `docs/S
 ## Non-goals and tradeoffs
 
 This release focuses on a **thin-but-working investor workflow**: distinguish important filings from routine noise, preserve the chain to primary sources, retrieve actual filings, and perform only properly reviewed financial analysis. Exchange blocking prevents automatic official live sync. Automated results reconciliation at scale, management biography enrichment, mobile OS push alerts, voice, team collaboration, brokerage integrations and production authentication remain out of scope. The honest limitation is part of the engineering judgment ENAM asks candidates to demonstrate.
+
+## Mobile interface
+
+The mobile UI has Brief / Feed / Research / Portfolio / Alerts navigation, a 24h / 3d / 7d digest picker, priority cards and collapsed routine filings. Alert preferences are stored in SQLite, with a browser backup for seed resets. Settings are shared by this FINN workspace; the full feed is independent of alert event selections. See [the mobile test checklist](docs/MOBILE_UI_TEST_CHECKLIST.md) for the 360/390/430px acceptance checks.
