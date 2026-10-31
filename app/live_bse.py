@@ -6,8 +6,8 @@ empty windows, malformed payloads and incomplete pagination leave the existing
 filings unchanged. No browser automation or challenge bypass is attempted.
 
 CLI:
-    python -m app.live_bse --days 3
-    python -m app.live_bse --from 2026-10-29 --to 2026-10-31
+    python -m app.live_bse --days 3  # BSE RSS (default)
+    python -m app.live_bse --days 3 --source json  # legacy API diagnostics
 """
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from .core import PORTFOLIO, assess_filing, classify, excerpt
+from .bse_import import MAX_XML_BYTES, parse_feed
 from .grouping import group_filings
 from .storage import connection
 
@@ -32,6 +33,12 @@ IST = timezone(timedelta(hours=5, minutes=30))
 ROOT = Path(__file__).resolve().parents[1]
 PORTFOLIO_FILE = ROOT / "data" / "portfolio.json"
 BSE_API = "https://api.bseindia.com/BseIndiaAPI/api/AnnGetData/w"
+# Published BSE RSS addresses; reachable independently of the legacy JSON API
+# in some environments. We do not circumvent HTTP 403 or access controls.
+BSE_RSS_URLS = (
+    "https://www.bseindia.com/data/xml/announcements.xml",
+    "https://www.bseindia.com/data/xml/announcements.aspx",
+)
 PDF_ROOT = "https://www.bseindia.com/xml-data/corpfiling/AttachLive/"
 MAX_PAGES_PER_SCRIP = 5
 PAGE_SIZE = 50  # BSE's historically observed page size; use ROWCNT if supplied.
@@ -222,10 +229,92 @@ def _fetch_for_scrip(session: requests.Session, code: str, first: date, last: da
     raise ValueError(f"BSE pagination limit reached for scrip {code}; no changes saved")
 
 
+def _fetch_rss(session: requests.Session) -> tuple[bytes, str]:
+    """Try publicly advertised BSE RSS feeds; never bypass access restrictions.
+
+    A successful response must be parseable by FINN's existing BSE RSS parser.
+    Network errors, 403, HTML login pages and invalid XML are all treated as
+    failures. No DB changes are made during fetching.
+    """
+    failures: list[str] = []
+    for url in BSE_RSS_URLS:
+        try:
+            with session.get(
+                url,
+                timeout=(5, 15),
+                stream=True,
+                headers={
+                    # Match the simple successful RSS probe. The JSON API
+                    # uses separate request defaults on the same session.
+                    "Accept": "application/rss+xml, application/xml, text/xml, */*",
+                    "Origin": None,
+                    "Referer": None,
+                },
+            ) as response:
+                response.raise_for_status()
+                size = 0
+                pieces: list[bytes] = []
+                for piece in response.iter_content(chunk_size=65536):
+                    if not piece:
+                        continue
+                    size += len(piece)
+                    if size > MAX_XML_BYTES:
+                        raise ValueError("BSE RSS feed exceeds safety limit")
+                    pieces.append(piece)
+                raw = b"".join(pieces)
+                parse_feed(raw)  # Reuse the vetted RSS/XML parser, including DTD checks.
+                return raw, url
+        except (requests.RequestException, ValueError, OSError) as exc:
+            failures.append(f"{url.rsplit('/', 1)[-1]}: {type(exc).__name__}: {str(exc)[:100]}")
+    raise ValueError("BSE RSS unavailable (" + "; ".join(failures) + ")")
+
+
+def _rss_candidates(feed: bytes, codes: dict[str, str],
+                    first: date, last: date) -> tuple[int, list[dict]]:
+    """Convert official RSS rows to the existing FINN filings schema.
+
+    Only retain verified ticker/code pairs, correct dates and HTTPS BSE PDF
+    addresses. Never invent source documents or announcements.
+    """
+    rows = parse_feed(feed)
+    reverse_codes = {code: ticker for ticker, code in codes.items()}
+    candidates = []
+    for row in rows:
+        ticker = reverse_codes.get(row["code"])
+        if ticker is None:
+            continue
+        try:
+            published = datetime.fromisoformat(row["published"])
+        except (ValueError, TypeError):
+            continue
+        if not first <= published.date() <= last:
+            continue
+        raw_url = row["url"]
+        parsed = urlparse(raw_url)
+        if not (parsed.scheme == "https"
+                and parsed.hostname in ("www.bseindia.com", "bseindia.com")
+                and parsed.path.lower().startswith("/xml-data/")
+                and parsed.path.lower().endswith(".pdf")):
+            continue
+        desc = _clean(row["description"])
+        title = (desc[:170] or _clean(row["name"]))[:500]
+        if not title:
+            continue
+        category, score = classify(title, desc)
+        candidates.append({
+            "ticker": ticker, "published": published.isoformat(),
+            "title": title, "url": raw_url, "category": category,
+            "score": score, "source": "BSE official live RSS",
+            "excerpt": excerpt(desc), "derived_url": False,
+        })
+    return len(rows), candidates
+
+
 def sync_bse(from_date: date | str, to_date: date | str, *,
              portfolio_file: Path = PORTFOLIO_FILE,
              session: requests.Session | None = None,
-             max_pages: int = MAX_PAGES_PER_SCRIP) -> dict:
+             max_pages: int = MAX_PAGES_PER_SCRIP,
+             transport: str = "rss") -> dict:
     """Atomically import valid BSE rows; preserve the DB on any fetch failure.
 
     Returns metadata with source='live' only when at least one valid current
@@ -238,6 +327,7 @@ def sync_bse(from_date: date | str, to_date: date | str, *,
         "received": 0, "eligible": 0, "added": 0,
         "duplicates": 0, "grouped_events": 0, "derived_pdf_urls": 0,
         "note": "Existing database rows are preserved if live retrieval fails.",
+        "transport": transport, "endpoint": None,
     }
     own_session = session is None
     try:
@@ -245,19 +335,35 @@ def sync_bse(from_date: date | str, to_date: date | str, *,
         if first > last:
             raise ValueError("from_date must not be after to_date")
         status["from_date"], status["to_date"] = first.isoformat(), last.isoformat()
+        if transport not in ("rss", "json"):
+            raise ValueError("transport must be rss or json")
         codes = load_portfolio(portfolio_file)
         if not codes:
             raise ValueError("No BSE scrip codes configured in data/portfolio.json")
         active = session if session is not None else make_session()
         candidates: list[dict] = []
-        for ticker, code in codes.items():
-            rows = _fetch_for_scrip(active, code, first, last, max_pages)
-            status["received"] += len(rows)
-            candidates.extend(item for row in rows
-                              if (item := _convert(row, ticker, code, first, last)) is not None)
-        # No partial import if any configured scrip's fetch failed.
-        if not candidates:
-            raise ValueError("No valid portfolio filings returned by BSE in this date window")
+        # Keep injected fake sessions on the original JSON path so existing
+        # mocked tests remain unchanged; default real usage is RSS-first.
+        if transport == "rss" and session is None:
+            feed, url = _fetch_rss(active)
+            status["endpoint"] = url
+            status["received"], candidates = _rss_candidates(feed, codes, first, last)
+            if not candidates:
+                raise ValueError(
+                    "BSE RSS responded, but contained no source-linked portfolio "
+                    "filings in the selected date range (not proof of zero "
+                    "announcements; RSS has a rolling retention window)"
+                )
+        else:
+            status["transport"] = "json"
+            status["endpoint"] = BSE_API
+            for ticker, code in codes.items():
+                rows = _fetch_for_scrip(active, code, first, last, max_pages)
+                status["received"] += len(rows)
+                candidates.extend(item for row in rows
+                                  if (item := _convert(row, ticker, code, first, last)) is not None)
+            if not candidates:
+                raise ValueError("No valid portfolio filings returned by BSE in this date window")
 
         status["eligible"] = len(candidates)
         status["derived_pdf_urls"] = sum(item["derived_url"] for item in candidates)
@@ -301,8 +407,17 @@ def sync_bse(from_date: date | str, to_date: date | str, *,
         # Use FINN's existing presentation-only grouping function.
         status["grouped_events"] = len(group_filings(grouped_rows))
         status["source"] = "live"
-        status["note"] = ("BSE website JSON response processed; PDFs not independently fetched or "
-                          "verified. Derived attachment URLs may require review.")
+        if status["transport"] == "rss":
+            status["note"] = (
+                "Live BSE RSS successfully fetched and matched; this is a rolling "
+                "feed and may not contain the entire requested date range. "
+                "Linked PDFs were not independently downloaded or inspected."
+            )
+        else:
+            status["note"] = (
+                "BSE website JSON response processed; PDFs not independently "
+                "fetched or verified. Derived attachment URLs may require review."
+            )
         return status
     except (requests.RequestException, ValueError, OSError, json.JSONDecodeError) as exc:
         status["error"] = f"{type(exc).__name__}: {str(exc)[:240]}"
@@ -318,6 +433,8 @@ def main(argv: list[str] | None = None) -> int:
     group.add_argument("--days", type=int, default=None, help="Calendar days including today (default 3)")
     group.add_argument("--from", dest="from_date", help="Start date YYYY-MM-DD (requires --to)")
     parser.add_argument("--to", dest="to_date", help="End date YYYY-MM-DD")
+    parser.add_argument("--source", choices=("rss", "json"), default="rss",
+                        help="rss (default) or legacy JSON for diagnosis")
     parser.add_argument("--portfolio", type=Path, default=PORTFOLIO_FILE)
     args = parser.parse_args(argv)
     if args.from_date is not None:
@@ -332,7 +449,8 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("--days must be between 1 and 31")
         today = datetime.now(IST).date()
         first, last = today - timedelta(days=days - 1), today
-    result = sync_bse(first, last, portfolio_file=args.portfolio)
+    result = sync_bse(first, last, portfolio_file=args.portfolio,
+                      transport=args.source)
     print(json.dumps(result, indent=2))
     # A network failure is a graceful application fallback, not a Python crash.
     return 0
