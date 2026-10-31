@@ -13,7 +13,7 @@ import requests
 from fastapi import APIRouter, HTTPException
 
 from .core import PORTFOLIO
-from .research import ingest
+from .research import ingest,PDF_EXTRACTION_VERSION
 from .storage import connection
 
 CATALOG = Path(__file__).resolve().parents[1] / 'sample_data' / 'primary_reports.json'
@@ -56,7 +56,7 @@ def download(report):
 
 def indexed(ticker):
     with closing(connection()) as db:
-        return {r['source_url']:dict(r) for r in db.execute('''SELECT id,name,kind,source_url,pages,content_sha256
+        return {r['source_url']:dict(r) for r in db.execute('''SELECT id,name,kind,source_url,pages,content_sha256,extraction_version
             FROM documents WHERE ticker=? AND auto_loaded=1''',(ticker,))}
 
 
@@ -82,7 +82,7 @@ def ensure_reports(ticker):
         existing = indexed(ticker)
         loaded, errors = 0, []
         for report in reports:
-            if report['url'] in existing:
+            if report['url'] in existing and existing[report['url']]['extraction_version']>=PDF_EXTRACTION_VERSION:
                 continue
             key = (ticker, report['url'])
             if key in _failures and datetime.now(timezone.utc)-_failures[key] < timedelta(minutes=10):

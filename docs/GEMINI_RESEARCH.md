@@ -64,14 +64,28 @@ this SDK does not itself choose your project's billing tier. See Google's
 
 - Page-aware chunks target 800 approximate word/punctuation tokens with 100-token
   overlap, bounded by each original PDF page. Short pages remain short.
+- PDF ingestion preserves original paragraph-block order instead of sorting
+  equal-height lines across columns. The 20 pinned public reports have been
+  rebuilt from their checksum-verified originals. Existing document IDs, source
+  URLs and PDF page numbers are preserved. Older automatic indexes are refreshed
+  on report loading; old manually uploaded PDFs need re-uploading to repair
+  layout when only the flattened text remains available.
 - Legacy indexes are upgraded once per document, reconstructing each original
   page from its overlapping stored chunks. Page numbers stay unchanged.
 - TF-IDF remains the retriever. Metric-specific relevance filtering excludes
   unrelated overview chunks; quantitative snapshots require numeric evidence.
+- Card-specific retrieval queries use topic words instead of card instructions.
+  Audit boilerplate is excluded unless the question explicitly concerns audit,
+  accounting, internal controls or going concern. Explicit audit questions still
+  use those passages.
 - Gemini sees only the retrieved excerpts, the question and grounding rules.
   It selects concise verbatim evidence for the answer. The server checks every
   quote against the cited chunk and supplies `[file, page]` labels itself. Free
   prose that could add unsupported claims is not displayed.
+- Answers contain at most four evidence bullets, each at most 600 characters.
+  Extractive fallback selects up to three readable complete sentences and never
+  displays large clipped chunks. If no readable relevant sentence is available,
+  it returns `insufficient evidence`.
 - Missing evidence produces `insufficient evidence`. Invalid source IDs,
   invented quotes, malformed responses and failed calls use the extractive
   fallback. Guidance is never automatically treated as delivered actuals.

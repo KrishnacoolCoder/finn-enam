@@ -52,6 +52,7 @@ def init():
         if 'auto_loaded' not in cols:c.execute('ALTER TABLE documents ADD COLUMN auto_loaded INTEGER NOT NULL DEFAULT 0')
         if 'content_sha256' not in cols:c.execute("ALTER TABLE documents ADD COLUMN content_sha256 TEXT NOT NULL DEFAULT ''")
         if 'chunk_version' not in cols:c.execute('ALTER TABLE documents ADD COLUMN chunk_version INTEGER NOT NULL DEFAULT 1')
+        if 'extraction_version' not in cols:c.execute('ALTER TABLE documents ADD COLUMN extraction_version INTEGER NOT NULL DEFAULT 1')
         c.execute("CREATE UNIQUE INDEX IF NOT EXISTS auto_report_identity ON documents(ticker,source_url) WHERE auto_loaded=1")
 
 def get_setting(k,default):
