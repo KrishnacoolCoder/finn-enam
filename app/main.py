@@ -17,6 +17,8 @@ from .pdf_financials import discover_pdf, MAX_PDF_BYTES
 from .briefing import build_digest, markdown_digest
 
 app=FastAPI(title='FINN | Investment Intelligence',version='4.0.0')
+from .ingestion import router as ingestion_router
+app.include_router(ingestion_router)
 init()
 setup_financials()
 STATIC=Path(__file__).resolve().parents[1]/'static'

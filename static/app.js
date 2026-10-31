@@ -106,3 +106,19 @@ $('loadBundledBtn').addEventListener('click',async()=>{try{const r=await req('/b
 async function loadAlerts(){
  try{const items=await req('/alerts?limit=12');$('alertHistory').innerHTML=items.length?items.map(a=>`<div class="event"><span class="event-icon">!</span><div><div class="event-title">${esc(a.ticker)} · ${esc(a.alert_type.toUpperCase())}</div><div class="event-meta">EOD ${esc(a.market_date)} · Price ${a.price_change_pct??'—'}% · Volume ${a.volume_multiple??'—'}×</div></div></div>`).join(''):'<p class="short-status">No recorded alerts yet. Refresh EOD prices to evaluate your chosen thresholds.</p>'}catch(e){$('alertHistory').textContent='Stored alert history unavailable.'}
 }
+
+// Read persisted collection status; repaint age without changing its timestamp.
+let feedFreshness = null;
+function paintFreshness(){
+ const el=$('feedFreshness');
+ if(!feedFreshness){el.textContent='Update status unavailable';return}
+ const stamp=Date.parse(feedFreshness.last_updated);
+ const age=Number.isFinite(stamp)?Math.max(0,Math.floor((Date.now()-stamp)/60000)):null;
+ el.textContent=(age===null?'Update time unknown':`Last updated ${age} min ago`)+` · ${feedFreshness.source}`;
+}
+async function refreshFreshness(){
+ try{feedFreshness=await req('/ingest/status')}catch{feedFreshness=null}
+ paintFreshness();
+}
+refreshFreshness();
+setInterval(refreshFreshness,60000);
