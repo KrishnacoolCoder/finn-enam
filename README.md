@@ -65,7 +65,7 @@ Copy `.env.example` locally and configure environment variables using your shell
 
 - `GEMINI_API_KEY`: enables Gemini 2.5 Flash over retrieved primary excerpts; absent or failed calls use extractive mode. See `docs/GEMINI_RESEARCH.md` for setup.
 - Research model: `gemini-2.5-flash`, using the `google-genai` SDK.
-- `GROQ_API_KEY`: optional Groq backup, with the same evidence checks; `GROQ_MODEL` defaults to `llama-3.3-70b-versatile`.
+- `GROQ_API_KEY`: optional Groq backup, with the same evidence checks; `GROQ_MODEL` defaults to `openai/gpt-oss-120b`.
 - `FINN_DATA_DIR`: path to persistent SQLite and indexed files (default `./data`).
 - `FINN_AUTO_POLL_MINUTES`: `0` by default, or `60` (must be >=30). Enables an optional in-process EOD watcher, which needs an **always-on backend**; it is not a real-time mobile notification service.
 

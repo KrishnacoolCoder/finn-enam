@@ -11,9 +11,16 @@ from .core import excerpt,extract_guidance
 
 MAX_BYTES=20*1024*1024
 CHUNK_VERSION=2
-POLICY_VERSION='multi-provider-evidence-v1'
+POLICY_VERSION='multi-provider-evidence-v2'
 MODEL='gemini-2.5-flash'
-GROQ_DEFAULT_MODEL='llama-3.3-70b-versatile'
+GROQ_DEFAULT_MODEL='openai/gpt-oss-120b'
+
+
+def groq_model():
+    configured=os.environ.get('GROQ_MODEL','').strip()
+    # Migrate the previous FINN default, retired for free/developer-tier users.
+    if configured in {'','llama-3.3-70b-versatile'}:return GROQ_DEFAULT_MODEL
+    return configured
 
 
 def page_chunks(text, size=800, overlap=100):
@@ -176,12 +183,12 @@ def gemini_generate(key,question,results):
 def groq_generate(key,question,results):
     import requests
     context=[{'source_id':i,'file':r['document'],'page':r['page'],'text':r['text']}
-             for i,r in enumerate(results,1)]
+             for i,r in enumerate(results[:4],1)]
     schema_example={'insufficient_evidence':False,'claims':[{'source_id':1,'quote':'verbatim source passage'}]}
     for attempt in range(3):
         response=requests.post('https://api.groq.com/openai/v1/chat/completions',
             headers={'Authorization':'Bearer '+key},
-            json={'model':os.environ.get('GROQ_MODEL',GROQ_DEFAULT_MODEL),
+            json={'model':groq_model(),
                   'temperature':0,'max_completion_tokens':2500,
                   'response_format':{'type':'json_object'},
                   'messages':[{'role':'system','content':SYSTEM_INSTRUCTION+'\nJSON format: '+json.dumps(schema_example)},
@@ -256,7 +263,7 @@ def answer(ticker,question):
           'groq':os.environ.get('GROQ_API_KEY','').strip()}
     configured=[provider for provider,key in keys.items() if key]
     # A changed/added/removed key or model must bypass previous mode/failure caches.
-    config=json.dumps([keys,os.environ.get('GROQ_MODEL',GROQ_DEFAULT_MODEL)],sort_keys=True)
+    config=json.dumps([keys,groq_model()],sort_keys=True)
     fingerprint=hashlib.sha256((document_hash(ticker)+config).encode()).hexdigest()
     with closing(connection()) as db:
         cached=db.execute('SELECT payload,created FROM research_answers WHERE ticker=? AND question=? AND document_hash=?',

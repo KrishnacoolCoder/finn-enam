@@ -35,7 +35,10 @@ different answer.
 Create a key at [Groq Console](https://console.groq.com/keys). Add `GROQ_API_KEY`
 under the FINN service's Render Environment settings, then save/redeploy.
 Keep `GEMINI_API_KEY` to retain Gemini as primary. Groq also works alone when no
-Gemini key is configured. `GROQ_MODEL` defaults to `llama-3.3-70b-versatile`.
+Gemini key is configured. `GROQ_MODEL` defaults to `openai/gpt-oss-120b`.
+The previous `llama-3.3-70b-versatile` default is automatically migrated to this
+replacement because Groq retired it for free/developer usage. Groq receives the
+top four retrieved chunks to keep requests smaller for free-tier token quotas.
 The Groq integration uses the existing requests dependency and JSON-object mode;
 the server independently validates the response schema and evidence.
 
@@ -49,7 +52,7 @@ prove that a key is invalid.
 
 Groq retries HTTP 429 at most twice with backoff, respecting short Retry-After
 values. Long quota waits fall back promptly. See the official
-[model documentation](https://console.groq.com/docs/model/llama-3.3-70b-versatile)
+[model documentation](https://console.groq.com/docs/model/openai/gpt-oss-120b)
 and [rate limits](https://console.groq.com/docs/rate-limits).
 
 Gemini 2.5 Flash has a free tier subject to Google's project/model quotas. Using

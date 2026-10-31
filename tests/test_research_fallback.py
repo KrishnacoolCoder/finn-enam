@@ -95,13 +95,21 @@ def test_backup_cache_expires_and_primary_recovers(database,monkeypatch):
     assert research.answer('TESTCO','What was revenue?')['mode']=='gemini_grounded'
 
 
+def test_retired_default_and_blank_model_migrate(database,monkeypatch):
+    for value in ('llama-3.3-70b-versatile',''):
+        monkeypatch.setenv('GROQ_MODEL',value)
+        assert research.groq_model()=='openai/gpt-oss-120b'
+    monkeypatch.setenv('GROQ_MODEL','openai/gpt-oss-20b')
+    assert research.groq_model()=='openai/gpt-oss-20b'
+
+
 @pytest.mark.parametrize('code,failures,expected_calls',[(200,0,1),(429,2,3),(401,1,1),(429,4,3)])
 def test_groq_transport_json_retry_and_no_redirects(database,monkeypatch,code,failures,expected_calls):
     calls=[];sleeps=[]
     def post(url,**kwargs):
         assert url=='https://api.groq.com/openai/v1/chat/completions'
         assert kwargs['allow_redirects'] is False
-        assert kwargs['json']['model']=='llama-3.3-70b-versatile'
+        assert kwargs['json']['model']=='openai/gpt-oss-120b'
         assert kwargs['json']['response_format']=={'type':'json_object'}
         assert 'ONLY' in kwargs['json']['messages'][0]['content']
         calls.append(1)
