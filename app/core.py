@@ -55,7 +55,7 @@ RULES = [
  ('postal_ballot',19,[r'postal ballot']),
  ('agm_egm',20,[r'annual general meeting',r'extraordinary general meeting',r'\begm\b',r'\bagm\b']),
 ]
-ROUTINE = [r'newspaper publication', r'newspaper advertisement',r'board meeting.*scheduled',r'meeting of the board.*scheduled',r'notice of board meeting',r'compliance certificate',r'trading window',r'publication of.*results']
+ROUTINE = [r'newspaper publication', r'newspaper advertisement',r'board meeting.*scheduled',r'board meeting intimation',r'intimation of.*board meeting',r'meeting of the board.*scheduled',r'notice of board meeting',r'compliance certificate',r'trading window',r'publication of.*results']
 
 def assess_filing(title: str, body: str='') -> dict:
     text=' '.join((title+' '+body[:1200]).lower().split())

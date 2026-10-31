@@ -41,6 +41,6 @@ Endpoints:
 
 Initial real-data acceptance: 98 stored filings across 20 companies, 93 newly
 collected filings, and 61 grouped events in the last seven days at preparation
-time. Counts change as source publication times enter/leave the window. 123 tests
+time. Counts change as source publication times enter/leave the window. 124 tests
 passed, including source failure isolation, bad links/dates, duplicate transport
 URLs, concurrent imports, scheduler start/stop, and timezone-window behavior.

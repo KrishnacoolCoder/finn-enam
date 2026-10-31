@@ -36,6 +36,15 @@ def test_metadata_dates_and_primary_links():
     assert rows[0]['source']==feed.SOURCE
 
 
+def test_board_meeting_intimation_is_not_reported_results_priority():
+    from app.core import assess_filing
+    notice=assess_filing('Board Meeting Intimation for Considering Financial Results',
+                         'Board meets 3 November to consider quarterly financial results')
+    assert notice['score']<=30 and 'Routine' in notice['reason']
+    outcome=assess_filing('Board Meeting Outcome: Approved Quarterly Financial Results')
+    assert outcome['score']==94
+
+
 @pytest.mark.parametrize('url,stamp',[
     ('https://bseindia.com.evil.test/filing.pdf','2026-10-31T10:00:00Z'),
     ('javascript:alert(1)','2026-10-31T10:00:00Z'),
