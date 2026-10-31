@@ -11,7 +11,7 @@ from .core import excerpt,extract_guidance
 
 MAX_BYTES=20*1024*1024
 CHUNK_VERSION=2
-POLICY_VERSION='gemini-evidence-v2'
+POLICY_VERSION='gemini-evidence-v3'
 MODEL='gemini-2.5-flash'
 
 
@@ -109,7 +109,7 @@ def retrieve(ticker,question,top_k=8):
     rows=[r for r in rows if relevant_chunk(r['content'],question)]
     if not rows:return []
     texts=[r['content'] for r in rows]
-    vectorizer=TfidfVectorizer(stop_words='english',ngram_range=(1,2),max_features=30000)
+    vectorizer=TfidfVectorizer(stop_words='english',ngram_range=(1,2),max_features=30000,sublinear_tf=True)
     try:
         # Fit the vocabulary on documents only: long card prompts must not dilute
         # relevance with instruction words that never occur in the source corpus.
