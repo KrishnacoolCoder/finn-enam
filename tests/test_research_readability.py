@@ -57,6 +57,36 @@ def test_long_model_quote_rejected_even_if_verbatim():
         'claims':[{'source_id':1,'quote':text}]},[{'text':text,'document':'report.pdf','page':1}])
 
 
+def test_typographic_pdf_differences_do_not_invalidate_source_quotes():
+    source={'text':'The company\u2019s bridge-to- luxury products grew by \u22125% during FY2026.',
+            'document':'report.pdf','page':7}
+    result=research.checked_answer({'insufficient_evidence':False,'claims':[{'source_id':1,
+        'quote':"The company's bridge-to-luxury products grew by -5% during FY2026."}]},[source])
+    assert '[report.pdf, 7]' in result['answer']
+    with pytest.raises(ValueError):
+        research.checked_answer({'insufficient_evidence':False,'claims':[{'source_id':1,
+            'quote':"The company's bridge-to-luxury products grew by 5% during FY2026."}]},[source])
+
+
+def test_extractive_drops_a_fragment_ending_in_a_preposition():
+    result=research.extractive_answer([{'text':'Develop digital products and services for customers in',
+        'document':'report.pdf','page':9,'score':.1}],'Business snapshot: products and customers')
+    assert result['answer'].startswith('insufficient evidence')
+
+
+def test_model_selects_ids_and_server_inserts_exact_evidence():
+    results=[{'text':'Revenue increased to INR 120 crore during FY2026. EBITDA improved to INR 30 crore during FY2026.',
+              'document':'report.pdf','page':4}]
+    context=research.evidence_context(results)
+    resolved=research.resolve_selection({'insufficient_evidence':False,'claims':[
+        {'source_id':1,'passage_id':2,'quote':'Invented profits of INR 99999 crore'}]},context)
+    answer=research.checked_answer(resolved,results,'groq')
+    assert 'EBITDA improved to INR 30 crore during FY2026.' in answer['answer']
+    assert '99999' not in answer['answer'] and '[report.pdf, 4]' in answer['answer']
+    with pytest.raises(ValueError):research.resolve_selection({'insufficient_evidence':False,
+        'claims':[{'source_id':1,'passage_id':99}]},context)
+
+
 def test_reindex_preserves_document_identity_and_pages(database):
     with fitz.open() as pdf:
         for _ in range(2):pdf.new_page().insert_text((40,60),'Revenue increased to INR 120 crore during FY2026. EBITDA improved in the period.')

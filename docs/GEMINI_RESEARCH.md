@@ -79,9 +79,12 @@ this SDK does not itself choose your project's billing tier. See Google's
   accounting, internal controls or going concern. Explicit audit questions still
   use those passages.
 - Gemini sees only the retrieved excerpts, the question and grounding rules.
-  It selects concise verbatim evidence for the answer. The server checks every
-  quote against the cited chunk and supplies `[file, page]` labels itself. Free
-  prose that could add unsupported claims is not displayed.
+  Retrieved excerpts are segmented into readable numbered sentences. Both models
+  return only source/passage IDs; the server inserts the selected source text and
+  `[file, page]` labels. Invalid IDs are rejected. Model-supplied prose is never
+  used as factual answer text. Quote checks normalize typographic quotes,
+  discretionary hyphens and PDF hyphen line wraps while retaining numbers and
+  minus signs.
 - Answers contain at most four evidence bullets, each at most 600 characters.
   Extractive fallback selects up to three readable complete sentences and never
   displays large clipped chunks. If no readable relevant sentence is available,

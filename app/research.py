@@ -1,6 +1,6 @@
 """Page-aware TF-IDF retrieval, evidence-checked Gemini, extractive fallback."""
 from __future__ import annotations
-import os,re,hashlib,json,time,random
+import os,re,hashlib,json,time,random,unicodedata
 from contextlib import closing
 from datetime import datetime,timezone,timedelta
 import fitz
@@ -12,7 +12,7 @@ from .core import excerpt,extract_guidance
 MAX_BYTES=20*1024*1024
 CHUNK_VERSION=2
 PDF_EXTRACTION_VERSION=2
-POLICY_VERSION='readable-evidence-v1'
+POLICY_VERSION='sentence-selection-v1'
 MODEL='gemini-2.5-flash'
 GROQ_DEFAULT_MODEL='openai/gpt-oss-120b'
 
@@ -188,8 +188,10 @@ Each quote must be a readable complete sentence or self-contained paragraph,
 between 20 and 600 characters. Never return a long raw document excerpt or a
 fragment starting midway through a sentence. Ignore auditor boilerplate unless
 the question is explicitly about audit, accounting or internal controls.
-For each claim return its source_id and a VERBATIM quote from that source.
-Do not paraphrase quotes or combine fragments into an invented statement.
+Each source contains numbered passages extracted from the retrieved chunks.
+For each claim return only source_id and passage_id. Select the most useful,
+self-contained passages; the server inserts the exact source text and citation.
+Do not return quotes, paraphrases or combine fragments into an invented statement.
 Keep dates, periods, units, standalone/consolidated basis and qualifiers intact.
 Distinguish management guidance from reported actuals. Narrative vs numbers needs
 both narrative evidence and reported numbers; bull vs bear needs evidence for
@@ -198,16 +200,46 @@ missing or the question cannot be answered, set insufficient_evidence=true.
 Return JSON only. The server attaches [file, page] citations to every quote.'''
 
 
+def evidence_context(results):
+    context=[]
+    for index,r in enumerate(results,1):
+        passages=[];seen=set()
+        for text in re.split(r'(?<=[.!?])\s+|\n\s*\n',r['text']):
+            text=' '.join(text.split())
+            if not 20<=len(text)<=600 or len(text.split())<5:continue
+            if not text[0].isupper() or text[-1] not in '.!?':continue
+            if text in seen:continue
+            seen.add(text)
+            passages.append({'passage_id':len(passages)+1,'text':text})
+            if len(passages)==8:break
+        context.append({'source_id':index,'file':r['document'],'page':r['page'],'passages':passages})
+    return context
+
+
+def resolve_selection(payload,context):
+    """Resolve model IDs against server-owned source text, never model prose."""
+    if not isinstance(payload,dict) or not isinstance(payload.get('claims'),list):
+        raise EvidenceError('invalid_payload')
+    selected=[]
+    for claim in payload['claims']:
+        if not isinstance(claim,dict):raise EvidenceError('invalid_source')
+        source=claim.get('source_id');passage=claim.get('passage_id')
+        if type(source) is not int or not 1<=source<=len(context):raise EvidenceError('invalid_source')
+        paragraphs=context[source-1]['passages']
+        if type(passage) is not int or not 1<=passage<=len(paragraphs):raise EvidenceError('invalid_source')
+        selected.append({'source_id':source,'quote':paragraphs[passage-1]['text']})
+    return {'insufficient_evidence':payload.get('insufficient_evidence'),'claims':selected}
+
+
 def gemini_generate(key,question,results):
     from google import genai
     from google.genai import types
     schema={'type':'object','properties':{
         'insufficient_evidence':{'type':'boolean'},
         'claims':{'type':'array','items':{'type':'object','properties':{
-            'source_id':{'type':'integer'},'quote':{'type':'string'}},'required':['source_id','quote']}}},
+            'source_id':{'type':'integer'},'passage_id':{'type':'integer'}},'required':['source_id','passage_id']}}},
         'required':['insufficient_evidence','claims']}
-    context=[{'source_id':i,'file':r['document'],'page':r['page'],'text':r['text']}
-             for i,r in enumerate(results,1)]
+    context=evidence_context(results)
     # Disable SDK retries so our bounded 429-only backoff is the single retry loop.
     with genai.Client(api_key=key,http_options=types.HttpOptions(timeout=20000,
             retry_options=types.HttpRetryOptions(attempts=1))) as client:
@@ -217,8 +249,8 @@ def gemini_generate(key,question,results):
                     contents=json.dumps({'question':question,'sources':context},ensure_ascii=False),
                     config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION,
                         temperature=0,response_mime_type='application/json',response_schema=schema,
-                        max_output_tokens=3000,thinking_config=types.ThinkingConfig(thinking_budget=0)))
-                return json.loads(response.text)
+                        max_output_tokens=700,thinking_config=types.ThinkingConfig(thinking_budget=0)))
+                return resolve_selection(json.loads(response.text),context)
             except Exception as exc:
                 code=getattr(exc,'code',None)
                 if str(code)!='429' or attempt==2:raise
@@ -227,14 +259,14 @@ def gemini_generate(key,question,results):
 
 def groq_generate(key,question,results):
     import requests
-    context=[{'source_id':i,'file':r['document'],'page':r['page'],'text':r['text']}
-             for i,r in enumerate(results[:4],1)]
-    schema_example={'insufficient_evidence':False,'claims':[{'source_id':1,'quote':'verbatim source passage'}]}
+    context=evidence_context(results[:4])
+    schema_example={'insufficient_evidence':False,'claims':[{'source_id':1,'passage_id':1}]}
     for attempt in range(3):
         response=requests.post('https://api.groq.com/openai/v1/chat/completions',
             headers={'Authorization':'Bearer '+key},
             json={'model':groq_model(),
-                  'temperature':0,'max_completion_tokens':2500,
+                  'temperature':0,'max_completion_tokens':1500,
+                  **({'reasoning_effort':'low'} if groq_model().startswith('openai/gpt-oss') else {}),
                   'response_format':{'type':'json_object'},
                   'messages':[{'role':'system','content':SYSTEM_INSTRUCTION+'\nJSON format: '+json.dumps(schema_example)},
                               {'role':'user','content':json.dumps({'question':question,'sources':context},ensure_ascii=False)}]},
@@ -249,7 +281,7 @@ def groq_generate(key,question,results):
         if not 200<=response.status_code<300:
             response.raise_for_status()
             raise ValueError('Unexpected provider response')
-        return json.loads(response.json()['choices'][0]['message']['content'])
+        return resolve_selection(json.loads(response.json()['choices'][0]['message']['content']),context)
 
 
 def failure_reason(exc):
@@ -265,23 +297,40 @@ def failure_reason(exc):
         reason='request_timeout'
     if not reason:
         reason='invalid_evidence' if isinstance(exc,(ValueError,KeyError,TypeError,AttributeError)) else 'provider_unavailable'
-    return {'reason':reason,**({'http_status':status} if status and 100<=status<=599 else {})}
+    detail=getattr(exc,'evidence_issue',None)
+    return {'reason':reason,**({'http_status':status} if status and 100<=status<=599 else {}),
+            **({'evidence_issue':detail} if detail in {'invalid_payload','invalid_claims','invalid_source','quote_length','quote_not_found'} else {})}
+
+
+class EvidenceError(ValueError):
+    def __init__(self,issue):
+        super().__init__('Evidence validation failed')
+        self.evidence_issue=issue
+
+
+def canonical_quote(text):
+    """Normalize typography, never remove numbers, negations or minus signs."""
+    text=unicodedata.normalize('NFKC',text).replace('\u00ad','')
+    text=text.translate(str.maketrans({'\u2018':"'",'\u2019':"'",'\u201c':'"','\u201d':'"',
+        '\u2010':'-','\u2011':'-','\u2013':'-','\u2014':'-','\u2212':'-'}))
+    text=re.sub(r'(?<=\w)-\s+(?=\w)','-',text)
+    return ' '.join(text.split())
 
 
 def checked_answer(payload,results,provider='gemini'):
     """Only exact source quotes reach the UI; citation labels come from SQLite."""
     if not isinstance(payload,dict) or type(payload.get('insufficient_evidence')) is not bool:
-        raise ValueError('Invalid evidence response')
+        raise EvidenceError('invalid_payload')
     claims=payload.get('claims')
-    if not isinstance(claims,list) or len(claims)>4:raise ValueError('Invalid claims')
+    if not isinstance(claims,list) or len(claims)>4:raise EvidenceError('invalid_claims')
     lines=[];citations=[]
     for claim in claims:
         index=claim.get('source_id');quote=claim.get('quote')
         if type(index) is not int or not 1<=index<=len(results) or not isinstance(quote,str):
-            raise ValueError('Invalid source reference')
-        quote=' '.join(quote.split());source=results[index-1]
-        if len(quote)<20 or len(quote)>600 or quote not in ' '.join(source['text'].split()):
-            raise ValueError('Unsupported claim')
+            raise EvidenceError('invalid_source')
+        quote=canonical_quote(quote);source=results[index-1]
+        if len(quote)<20 or len(quote)>600:raise EvidenceError('quote_length')
+        if quote not in canonical_quote(source['text']):raise EvidenceError('quote_not_found')
         # Never render model-supplied file names, citations or unsupported prose.
         label=re.sub(r'[\[\]\r\n]',' ',source['document'])
         lines.append(f'\u2022 {quote} [{label}, {source["page"]}]')
@@ -299,6 +348,7 @@ def extractive_answer(results,question=''):
         for sentence in re.split(r'(?<=[.!?])\s+|\n\s*\n',r['text']):
             sentence=' '.join(sentence.split())
             if not 20<=len(sentence)<=500 or len(sentence.split())<5:continue
+            if sentence[-1] not in '.!?':continue
             if not sentence[0].isupper() or not relevant_chunk(sentence,question):continue
             overlap=len(terms & set(re.findall(r'[a-z]{3,}',sentence.lower())))
             if overlap:candidates.append((overlap,r['score'],sentence,r))
