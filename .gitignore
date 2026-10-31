@@ -20,7 +20,8 @@ env/
 *.key
 
 # Runtime data and uploads (never expose private user documents)
-data/
+data/*
+!data/portfolio.json
 uploads/
 **/uploads/
 *.sqlite
