@@ -39,6 +39,10 @@ def init():
         );
         CREATE INDEX IF NOT EXISTS alerts_marketdate_idx ON market_alerts(market_date);
         ''')
+        cols={r[1] for r in c.execute('PRAGMA table_info(documents)')}
+        if 'auto_loaded' not in cols:c.execute('ALTER TABLE documents ADD COLUMN auto_loaded INTEGER NOT NULL DEFAULT 0')
+        if 'content_sha256' not in cols:c.execute("ALTER TABLE documents ADD COLUMN content_sha256 TEXT NOT NULL DEFAULT ''")
+        c.execute("CREATE UNIQUE INDEX IF NOT EXISTS auto_report_identity ON documents(ticker,source_url) WHERE auto_loaded=1")
 
 def get_setting(k,default):
     with connection() as c:

@@ -23,6 +23,8 @@ from .news import router as news_router
 app.include_router(news_router)
 from .screener_context import router as company_context_router
 app.include_router(company_context_router)
+from .primary_reports import router as primary_reports_router
+app.include_router(primary_reports_router)
 init()
 setup_financials()
 STATIC=Path(__file__).resolve().parents[1]/'static'

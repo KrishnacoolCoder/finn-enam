@@ -1,6 +1,7 @@
 """Document-grounded retrieval, with extractive fallback and optional OpenAI."""
 from __future__ import annotations
-import io, os,re
+import io, os,re,hashlib
+from contextlib import closing
 from datetime import datetime,timezone
 import fitz
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -10,15 +11,14 @@ from .core import excerpt,extract_guidance
 
 MAX_BYTES=20*1024*1024
 
-def ingest(ticker:str,name:str,data:bytes,kind:str='annual_report',url:str=''):
-    if len(data)>MAX_BYTES:raise ValueError('File exceeds the 20 MB limit.')
+def ingest(ticker:str,name:str,data:bytes,kind:str='annual_report',url:str='',*,auto_loaded=False,max_bytes=MAX_BYTES,max_pages=350):
+    if len(data)>max_bytes:raise ValueError(f'File exceeds the {max_bytes//1024//1024} MB limit.')
     pages=[]
     if name.lower().endswith('.pdf'):
         try:
-            pdf=fitz.open(stream=data,filetype='pdf')
-            if len(pdf)>350:raise ValueError('PDF exceeds the 350-page limit.')
-            for i,p in enumerate(pdf):pages.append((i+1,p.get_text(sort=True)))
-            pdf.close()
+            with fitz.open(stream=data,filetype='pdf') as pdf:
+                if len(pdf)>max_pages:raise ValueError(f'PDF exceeds the {max_pages}-page limit.')
+                for i,p in enumerate(pdf):pages.append((i+1,p.get_text(sort=True)))
         except ValueError:raise
         except Exception as exc:raise ValueError('Could not read this PDF.') from exc
     elif name.lower().endswith('.txt'):
@@ -32,16 +32,21 @@ def ingest(ticker:str,name:str,data:bytes,kind:str='annual_report',url:str=''):
             block=' '.join(words[start:start+220])
             if len(block)>50:chunks.append((page,block))
     if not chunks:raise ValueError('No selectable text was found. Scanned PDFs need OCR before upload.')
-    with connection() as c:
-        cur=c.execute('INSERT INTO documents (ticker,name,kind,source_url,added,pages) VALUES (?,?,?,?,?,?)',
-            (ticker,name,kind,url,datetime.now(timezone.utc).isoformat(),len(pages)))
-        doc_id=cur.lastrowid
-        c.executemany('INSERT INTO chunks (document_id,page,content) VALUES (?,?,?)',[(doc_id,p,t) for p,t in chunks])
+    with closing(connection()) as c:
+        c.execute('BEGIN IMMEDIATE')
+        with c:
+            if auto_loaded:
+                old=c.execute('SELECT id,pages FROM documents WHERE ticker=? AND source_url=? AND auto_loaded=1',(ticker,url)).fetchone()
+                if old:return {'document_id':old['id'],'pages':old['pages'],'chunks':0,'duplicate':True}
+            cur=c.execute('INSERT INTO documents (ticker,name,kind,source_url,added,pages,auto_loaded,content_sha256) VALUES (?,?,?,?,?,?,?,?)',
+                (ticker,name,kind,url,datetime.now(timezone.utc).isoformat(),len(pages),int(auto_loaded),hashlib.sha256(data).hexdigest()))
+            doc_id=cur.lastrowid
+            c.executemany('INSERT INTO chunks (document_id,page,content) VALUES (?,?,?)',[(doc_id,p,t) for p,t in chunks])
     return {'document_id':doc_id,'pages':len(pages),'chunks':len(chunks)}
 
 def list_docs(ticker):
     with connection() as c:
-        rows=c.execute('SELECT id,ticker,name,kind,source_url,added,pages FROM documents WHERE ticker=? ORDER BY id DESC',(ticker,)).fetchall()
+        rows=c.execute('SELECT id,ticker,name,kind,source_url,added,pages,auto_loaded FROM documents WHERE ticker=? ORDER BY id DESC',(ticker,)).fetchall()
     return [dict(x) for x in rows]
 
 def retrieve(ticker,question,top_k=5):

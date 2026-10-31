@@ -1,0 +1,242 @@
+{
+  "RELIANCE": [
+    {
+      "name": "Reliance integrated annual report FY2025-26.pdf",
+      "kind": "annual_report",
+      "url": "https://www.ril.com/reports/RIL-Integrated-Annual-Report-2025-26.pdf",
+      "sha256": "ed8affb5e7d2da16e19ed925be925b04a8ee581038ff75ada1a5d0cb7309c1e0",
+      "allowed_hosts": [
+        "www.ril.com"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "HDFCBANK": [
+    {
+      "name": "HDFC Bank earnings call 18 April 2026.pdf",
+      "kind": "transcript",
+      "url": "https://archives.nseindia.com/corporate/HDFCBANK_24042026154113_SEintimationTranscriptofearningscall18April2026.pdf",
+      "sha256": "46164033635150fc2d5b0cfe635362e9146cc676330ac3f4b31b4752773bca0c",
+      "allowed_hosts": [
+        "archives.nseindia.com"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "ICICIBANK": [
+    {
+      "name": "ICICI Bank earnings call 18 July 2026.pdf",
+      "kind": "transcript",
+      "url": "https://www.icici.bank.in/content/dam/icicibank/india/managed-assets/docs/about-us/2027/transcript-for-earnings-call-held-on-july-18-2026.pdf",
+      "sha256": "60c104428aff18c78b697c82a173b7c8ac04b6c1b5e117feb828875041f74513",
+      "allowed_hosts": [
+        "www.icici.bank.in"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "SBIN": [
+    {
+      "name": "State Bank of India analyst meet Q1 FY27 (7 August 2026).pdf",
+      "kind": "transcript",
+      "url": "https://sbi.bank.in/documents/17836/41362884/13082026_Transcript+-+SBI+Q1FY27+Analyst+Meet.pdf/07f2a40e-4bd3-9d29-974f-db66300ca88f?t=1786614208399",
+      "sha256": "fd1135548b56fe4a6bdabf56b6b307111004f033c297bb378e827598644adfa4",
+      "allowed_hosts": [
+        "sbi.bank.in"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "TCS": [
+    {
+      "name": "TCS earnings call Q4 FY2025-26 (9 April 2026).pdf",
+      "kind": "transcript",
+      "url": "https://archives.nseindia.com/corporate/TCS_CORPCS_14042026200132_SEInt14042026_signed.pdf",
+      "sha256": "5298f07b01814d66ed6bdf9f40dc70116ff7f822ef93d29ffe5721b9fc9222c1",
+      "allowed_hosts": [
+        "archives.nseindia.com"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "INFY": [
+    {
+      "name": "Infosys Q4 FY2025-26 transcripts (23 April 2026).pdf",
+      "kind": "transcript",
+      "url": "https://archives.nseindia.com/corporate/Infosys_27042026203405_Transcript_April232026_Q4.pdf",
+      "sha256": "4ac29aca97bbdc1fb2f6d4ac56358054f1d507046eef039c2178dfa969b0b42b",
+      "allowed_hosts": [
+        "archives.nseindia.com"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "WIPRO": [
+    {
+      "name": "Wipro Q4 FY2025-26 earnings call (16 April 2026).pdf",
+      "kind": "transcript",
+      "url": "https://www.wipro.com/content/dam/nexus/en/investor/quarterly-results/2025-2026/q4fy26/q4fy26-earnings-transcript.pdf",
+      "sha256": "dd7f451b402aa5f95caf5b1e45455800b376cdd887004c2203ec30963fc7c8e9",
+      "allowed_hosts": [
+        "www.wipro.com"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "ONGC": [
+    {
+      "name": "ONGC Q1 FY2026-27 earnings call (5 August 2026).pdf",
+      "kind": "transcript",
+      "url": "https://ongcindia.com/documents/77751/2660534/Transcription-Q1-FY2627.pdf",
+      "sha256": "4c915f10ec898d2a6f76bb4ac8041bb1691ca9a677343febe7cae682db5bec1f",
+      "allowed_hosts": [
+        "ongcindia.com"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "MARUTI": [
+    {
+      "name": "Maruti Suzuki Q4 FY2025-26 earnings call (28 April 2026).pdf",
+      "kind": "transcript",
+      "url": "https://az-ci-afde-prd-arena-03-efddeyfchzf9akbb.z01.azurefd.net/msilintiwebpdfcopyfromdefault/Transcript_earnings_call_Maruti_Suzuki_Q4_FY_26.pdf",
+      "sha256": "bd3b2870edc4c6e5e2d7846130ad0188b79ab91e91923caa561c3757f842a563",
+      "allowed_hosts": [
+        "az-ci-afde-prd-arena-03-efddeyfchzf9akbb.z01.azurefd.net"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "M&M": [
+    {
+      "name": "Mahindra and Mahindra Q4 FY2025-26 analyst meet (5 May 2026).pdf",
+      "kind": "transcript",
+      "url": "https://www.mahindra.com/sites/default/files/2026-05/M%26M%20Q4F26%20Analyst%20Meet%20-%20Transcript%20.pdf",
+      "sha256": "777b12ad18c596d911841a4306f40ca51cee8444c8249c0521e8f6294509c13d",
+      "allowed_hosts": [
+        "www.mahindra.com"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "HINDUNILVR": [
+    {
+      "name": "Hindustan Unilever integrated annual report FY2025-26.pdf",
+      "kind": "annual_report",
+      "url": "https://www.hul.co.in/files/annual-report-2025-26.pdf",
+      "sha256": "98219f80b28472d4d11c893274e0537b5098c98f34dcc30c7f905db3cb7a929b",
+      "allowed_hosts": [
+        "www.hul.co.in"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "ITC": [
+    {
+      "name": "ITC annual report and accounts FY2024-25.pdf",
+      "kind": "annual_report",
+      "url": "https://archives.nseindia.com/annual_reports/AR_26624_ITC_2024_2025_A_27062025150548.pdf",
+      "sha256": "6b4cb6251ee52c35e7b2d0744089f7dcaba4da86f64a522ff249d0aa376e0925",
+      "allowed_hosts": [
+        "archives.nseindia.com"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "SUNPHARMA": [
+    {
+      "name": "Sun Pharma Q1 FY2026-27 earnings call (31 July 2026).pdf",
+      "kind": "transcript",
+      "url": "https://sunpharma.com/wp-content/uploads/2026/08/FY27-Q1-Earnings-Call-Transcript.pdf",
+      "sha256": "a9ee7b98c659153ca1d1a729ef9e75d2fabcad348034a4e8b8d871d6243950e1",
+      "allowed_hosts": [
+        "sunpharma.com"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "DRREDDY": [
+    {
+      "name": "Dr Reddys Q3 FY2025-26 earnings call (21 January 2026).pdf",
+      "kind": "transcript",
+      "url": "https://www.drreddys.com/cms/sites/default/files/2026-01/DRL_Q3FY26EarningsCallTranscript_21Jan2026.pdf",
+      "sha256": "b699e90969d097a4cb15c2c55dd545ecbc2a6b6403f6bdab6953ed5dbdba15b1",
+      "allowed_hosts": [
+        "www.drreddys.com"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "LT": [
+    {
+      "name": "Larsen and Toubro Q1 FY2026-27 earnings call (28 July 2026).pdf",
+      "kind": "transcript",
+      "url": "https://investors.larsentoubro.com/upload/Analysttrans/FY2027AnalysttransL&T-Earnings-Jul28-2026.pdf",
+      "sha256": "ece47aee8a684624fe5325c9402bd5f438fe0e9f71570e020728829bb7106ae8",
+      "allowed_hosts": [
+        "investors.larsentoubro.com"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "ADANIPORTS": [
+    {
+      "name": "Adani Ports Q1 FY2026-27 earnings call (29 July 2026).pdf",
+      "kind": "transcript",
+      "url": "https://www.adaniports.com/-/media/project/ports/investor/transcripts/transcript.pdf",
+      "sha256": "81398dc9b4ad65ffb74fd5f1000d1934d98463db83c75f41d6de13e0c713c81e",
+      "allowed_hosts": [
+        "www.adaniports.com"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "BHARTIARTL": [
+    {
+      "name": "Bharti Airtel Q4 FY2025-26 earnings webinar.pdf",
+      "kind": "transcript",
+      "url": "https://assets.airtel.in/static-assets/cms/investor/docs/quarterly_results/2025-26/Q4/Transcript-of-Bharti-Airtel-Limited-and-Bharti-Hexacom-Limited-4Q-ended-March-31-2026-Earnings-Webinar.pdf",
+      "sha256": "1667d8f7447cd01ccdee49ec80875b40159aa6aed74378c4bd7e0a47af3ed63d",
+      "allowed_hosts": [
+        "assets.airtel.in"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "TATASTEEL": [
+    {
+      "name": "Tata Steel Q4 FY2025-26 earnings discussion (16 May 2026).pdf",
+      "kind": "transcript",
+      "url": "https://archives.nseindia.com/corporate/NIDHIFADNAVIS_20052026212711_BSENSE_EarningsTranscript.pdf",
+      "sha256": "57270b3d59e34c9541d5894d73856554acbdf760343681863189c92f8621b716",
+      "allowed_hosts": [
+        "archives.nseindia.com"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "TITAN": [
+    {
+      "name": "Titan Q3 FY2025-26 earnings call transcript (February 2026).pdf",
+      "kind": "transcript",
+      "url": "https://archives.nseindia.com/corporate/TITAN_13022026214102_SEtranscriptQ3.pdf",
+      "sha256": "1999b09953c067c4b031a53c914190b2b3d78fffd926aba3f744a77bd477c405",
+      "allowed_hosts": [
+        "archives.nseindia.com"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ],
+  "NTPC": [
+    {
+      "name": "NTPC Q3 FY2025-26 earnings call (30 January 2026).pdf",
+      "kind": "transcript",
+      "url": "https://ntpc.co.in/sites/default/files/inline-files/Final%20Transcript%20Q3FY26_0.pdf",
+      "sha256": "353b430b2724342b79bd72d4b9b822311a312537c5f02f8c71502b7f44d17e5e",
+      "allowed_hosts": [
+        "ntpc.co.in"
+      ],
+      "catalog_as_of": "2026-11-01"
+    }
+  ]
+}
