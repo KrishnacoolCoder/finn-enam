@@ -66,6 +66,13 @@ def run_once(url, token, *, days=3, seed=SEED):
         previous['last_updated'] = now
     previous.update(last_attempt=now, source=result['source'])
     storage.set_setting('feed_status', json.dumps(previous))
+    # News is optional context; neither collection nor upload may break filings.
+    news_result = {'errors': []}
+    try:
+        from app.news import sync_news
+        news_result = sync_news()
+    except Exception as exc:
+        news_result['errors'].append({'error': type(exc).__name__})
     # Export before upload so a host outage cannot prevent the local backup.
     export_seed(seed)
     with closing(storage.connection()) as db:
@@ -85,7 +92,21 @@ def run_once(url, token, *, days=3, seed=SEED):
             body = response.json()
             for key in totals:
                 totals[key] += body[key]
-    return {'collection': result, 'upload': totals, 'seed': str(seed)}
+        try:
+            with closing(storage.connection()) as db:
+                news_rows = [dict(row) for row in db.execute('''SELECT ticker,title,source,published,link
+                    FROM news ORDER BY published DESC LIMIT 5000''')]
+            news_result['uploaded'] = 0
+            for start in range(0, len(news_rows), 500):
+                batch = news_rows[start:start + 500]
+                response = session.post(url.rstrip('/') + '/news', json=batch,
+                    headers={'X-Ingest-Token': token}, timeout=(5, 60), allow_redirects=False)
+                if not 200 <= response.status_code < 300:
+                    raise RuntimeError(f'News upload HTTP {response.status_code}')
+                news_result['uploaded'] += len(batch)
+        except Exception as exc:
+            news_result['errors'].append({'upload_error': type(exc).__name__})
+    return {'collection': result, 'upload': totals, 'news': news_result, 'seed': str(seed)}
 
 
 def main(argv=None):

@@ -22,8 +22,9 @@ replace your runtime DB or your current seed. No dependency changes are needed.
 
 3. Each cycle runs the existing BSE RSS sync locally, exports `seed/finn.sqlite3`,
    and uploads the source-linked, non-synthetic local filings in batches of 500.
-   Historical replay repairs missed uploads and host restarts. There is no news
-   fetcher in this repository, so no news task is invoked. RSS retention and
+   Historical replay repairs missed uploads and host restarts. Each cycle also
+   collects Google News RSS headline metadata for the 20 portfolio companies,
+   stores it separately, and uploads it via `/api/ingest/news`. RSS retention and
    portfolio filtering still apply; a successful connection can yield no matches.
    An upload failure leaves the local DB and exported seed available. Looped
    operation retries on the next cycle; one-shot operation exits nonzero.
@@ -68,13 +69,34 @@ Snapshot and empty uploads preserve that timestamp and display `snapshot`.
 A newly exported seed is labeled snapshot on restoration. If no live timestamp
 exists, the UI displays `Update time unknown · snapshot`.
 
+## Market context
+
+Install updated dependencies with `python -m pip install -r requirements.txt`.
+`app/news.py` uses feedparser on bounded Google News RSS responses; it never
+downloads article pages. Only ticker, title, publisher, publication time and
+link are stored in the separate `news` table. Within each company, matching
+links and near-identical headlines within 72 hours are collapsed. Distinct
+numbers are retained. A company association comes from its company-name search;
+it is context, not independently verified company attribution.
+
+The overview has a labeled Market context section; matching-company headlines
+also appear below grouped filings. News follows the selected time window.
+It does not affect filing priority, briefs, primary documents, or research.
+Feed failures are reported per company and do not interrupt other collection;
+news-upload failures do not fail the filing upload. Existing news remains saved.
+`GET /api/news` is read-only; `POST /api/ingest/news` uses the same token as filing
+ingestion. Deploy the new endpoints before restarting the laptop collector to
+activate news collection on the website.
+
 ## Verification
 
 ```powershell
 python -m pytest -q
 ```
 
-This upgrade passed 57 tests locally, including token rejection, idempotent and
+This upgrade passed 65 tests locally, including token rejection, idempotent and
 concurrent uploads, invalid batch rejection, snapshot freshness, WAL-safe seed
-backup/restoration, and backup retention on upload failure. External BSE and
+backup/restoration, news metadata/deduplication, news failure isolation, and a
+research import guard plus SQLite authorizer that denies research any news-table
+reads. External BSE and
 host connectivity were not exercised by these mocked/local tests.

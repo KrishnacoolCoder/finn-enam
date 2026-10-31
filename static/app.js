@@ -1,16 +1,17 @@
 const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const req=async(path,options={})=>{const r=await fetch('/api'+path,options);const text=await r.text();let data;try{data=JSON.parse(text)}catch{data={detail:text}}if(!r.ok)throw Error(typeof data.detail==='string'?data.detail:`Request failed: ${r.status}`);return data};
 const json=(method,body)=>({method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+let newsRows=[],newsError=false;
 let filings=[],marketRows=[],hasMarket=false;function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3700)}
 function switchTab(tab){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('active',e.id===tab));document.querySelectorAll('[data-tab]').forEach(e=>e.classList.toggle('active',e.dataset.tab===tab));$('crumb').textContent=({overview:'Overview',feed:'Intelligence feed',research:'AI research',portfolio:'Portfolio'})[tab];window.scrollTo({top:0,behavior:'smooth'});if(tab==='research')loadDocs()}
 function dateLabel(s){const d=new Date(s);return isNaN(d)?'Date unavailable':d.toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}
 function badge(f){return f.source==='synthetic_demo'?'<span class="tag synthetic">SYNTHETIC DEMO</span>':'<span class="tag">'+esc(f.source||'MANUAL')+'</span>'}
 function filingHTML(f,feed=false){const high=f.score>=75;return `<div class="${feed?'feed-item':'event'}">${feed?`<div class="score">${f.score}<small>PRIORITY</small></div>`:`<span class="event-icon">${high?'✳':'◈'}</span>`}<div><div class="event-title">${esc(f.ticker)} <span style="color:#677e85">/</span> ${esc(f.title)}</div><div class="event-meta"><span>${esc(f.category.replaceAll('_',' '))}</span><span>${dateLabel(f.published)}</span>${badge(f)}${f.url?`<a href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">Original filing ↗</a>`:''}</div>${f.excerpt?`<p>${esc(f.excerpt)}</p>`:''}</div></div>`}
-function groupedHTML(g){const main=g.filings[0];return `<article class="feed-item grouped-event"><div class="score">${g.score}<small>PRIORITY</small></div><div><div class="event-title">${esc(g.ticker)} <span style="color:#677e85">/</span> ${esc(g.title)}</div><div class="event-meta"><span>${esc(g.category.replaceAll('_',' '))}</span><span>${dateLabel(g.published)}</span>${badge(main)}<span>${g.count} source${g.count===1?'':'s'}</span></div><p class="priority-note"><b>Why it matters:</b> ${esc(g.priority_reason)}</p>${main.excerpt?`<p>${esc(main.excerpt)}</p>`:''}<details class="filing-sources"><summary>View ${g.count} original filing${g.count===1?'':'s'} &amp; sources</summary>${g.filings.map((f,i)=>`<div class="filing-source"><span>${i+1}. ${esc(f.title)} · ${dateLabel(f.published)}</span>${f.url?`<a target="_blank" rel="noopener noreferrer" href="${esc(f.url)}">Original PDF ↗</a>`:'<small>Original URL not supplied</small>'}</div>`).join('')}</details></div></article>`}
+function groupedHTML(g){const main=g.filings[0];return `<article class="feed-item grouped-event"><div class="score">${g.score}<small>PRIORITY</small></div><div><div class="event-title">${esc(g.ticker)} <span style="color:#677e85">/</span> ${esc(g.title)}</div><div class="event-meta"><span>${esc(g.category.replaceAll('_',' '))}</span><span>${dateLabel(g.published)}</span>${badge(main)}<span>${g.count} source${g.count===1?'':'s'}</span></div><p class="priority-note"><b>Why it matters:</b> ${esc(g.priority_reason)}</p>${main.excerpt?`<p>${esc(main.excerpt)}</p>`:''}<details class="filing-sources"><summary>View ${g.count} original filing${g.count===1?'':'s'} &amp; sources</summary>${g.filings.map((f,i)=>`<div class="filing-source"><span>${i+1}. ${esc(f.title)} · ${dateLabel(f.published)}</span>${f.url?`<a target="_blank" rel="noopener noreferrer" href="${esc(f.url)}">Original PDF ↗</a>`:'<small>Original URL not supplied</small>'}</div>`).join('')}</details>${relatedNews(g.ticker)}</div></article>`}
 async function loadFeed(){try{
  const hours=$('window').value,min=$('priority').value;
  const query=`?hours=${hours}&min_priority=${min}`;
- const results=await Promise.all([req('/filings'+query),req('/filings/grouped'+query)]);
+ const results=await Promise.all([req('/filings'+query),req('/filings/grouped'+query),loadNews(hours)]);
  filings=results[0];
  const ticker=$('feedTicker').value,cat=$('feedCategory').value,showDemo=$('showSynthetic').checked;
  const groups=results[1].filter(g=>(!ticker||g.ticker===ticker)&&(!cat||g.category===cat)&&(showDemo||g.filings.every(f=>f.source!=='synthetic_demo')));
@@ -122,3 +123,20 @@ async function refreshFreshness(){
 }
 refreshFreshness();
 setInterval(refreshFreshness,60000);
+
+function newsHTML(n){
+ const safeLink=String(n.link||'').startsWith('https://')?n.link:'#';
+ return `<div class="news-item"><a href="${esc(safeLink)}" target="_blank" rel="noopener noreferrer">${esc(n.title)} ↗</a><small>${esc(n.ticker)} · ${esc(n.source)} · ${dateLabel(n.published)}</small></div>`;
+}
+function relatedNews(ticker){
+ const matches=newsRows.filter(n=>n.ticker===ticker).slice(0,3);
+ return matches.length?`<details class="related-news"><summary>Market context · ${esc(ticker)} · secondary sources</summary>${matches.map(newsHTML).join('')}</details>`:'';
+}
+async function loadNews(hours){
+ try{newsRows=await req('/news?hours='+encodeURIComponent(hours));newsError=false}
+ catch{newsRows=[];newsError=true}
+ const company=$('feedTicker').value;
+ const selected=newsRows.filter(n=>!company||n.ticker===company).slice(0,20);
+ $('marketContext').innerHTML=selected.length?selected.map(newsHTML).join(''):
+ `<p class="short-status">${newsError?'Market context is temporarily unavailable.':'No company headlines available in this time window.'}</p>`;
+}

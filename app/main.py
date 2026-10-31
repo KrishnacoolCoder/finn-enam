@@ -19,6 +19,8 @@ from .briefing import build_digest, markdown_digest
 app=FastAPI(title='FINN | Investment Intelligence',version='4.0.0')
 from .ingestion import router as ingestion_router
 app.include_router(ingestion_router)
+from .news import router as news_router
+app.include_router(news_router)
 init()
 setup_financials()
 STATIC=Path(__file__).resolve().parents[1]/'static'

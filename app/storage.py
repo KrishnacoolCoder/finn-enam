@@ -21,6 +21,12 @@ def init():
         CREATE TABLE IF NOT EXISTS chunks (id INTEGER PRIMARY KEY AUTOINCREMENT, document_id INTEGER NOT NULL, page INTEGER NOT NULL, content TEXT NOT NULL, FOREIGN KEY(document_id) REFERENCES documents(id));
         CREATE INDEX IF NOT EXISTS chunks_doc_idx ON chunks(document_id);
         CREATE TABLE IF NOT EXISTS preferences (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS news (
+          id INTEGER PRIMARY KEY AUTOINCREMENT, ticker TEXT NOT NULL,
+          title TEXT NOT NULL, source TEXT NOT NULL, published TEXT NOT NULL,
+          link TEXT NOT NULL, UNIQUE(ticker,link)
+        );
+        CREATE INDEX IF NOT EXISTS news_company_date_idx ON news(ticker,published);
         CREATE TABLE IF NOT EXISTS market_alerts (
           id INTEGER PRIMARY KEY AUTOINCREMENT, ticker TEXT NOT NULL,
           market_date TEXT NOT NULL, alert_type TEXT NOT NULL, price_change_pct REAL,
