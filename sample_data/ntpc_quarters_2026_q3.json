@@ -1,0 +1,20 @@
+{
+  "ticker": "NTPC",
+  "as_of": "2026-11-01",
+  "current_period": "2026-Q3",
+  "basis": "standalone",
+  "unit": "INR crore",
+  "source_url": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/763a3c28-d8b4-4cfb-83b1-854c78ab5c26.pdf",
+  "official_copy": "https://ntpc.co.in/sites/default/files/financial_results/2026/QFRQ2FY27%20Final.pdf",
+  "evidence_page": 2,
+  "verified": false,
+  "evidence_note": "Standalone statement, PDF page 2, first three quarterly columns (not half-year columns). Revenue = revenue from operations. PBT = profit before tax AND regulatory deferral balances. PAT = profit for the period INCLUDING net-of-tax regulatory deferrals. EBITDA is DERIVED operating EBITDA: revenue minus fuel, purchased electricity, employee benefits and other expenses; excludes other income and regulatory deferrals. Not a company-reported EBITDA line. Figures await user verification; audited/unaudited is separate from this badge. BSE access returned 403 during preparation; the official NTPC copy was inspected instead.",
+  "quarters": [
+    {"period": "2026-Q3", "revenue": 45752.00, "ebitda": 10890.65, "pbt": 5009.55, "pat": 5319.94,
+     "components": {"fuel": 26469.68, "electricity": 993.10, "employee": 1447.28, "other_expenses": 5951.29}},
+    {"period": "2026-Q2", "revenue": 43831.86, "ebitda": 12628.87, "pbt": 6878.80, "pat": 5342.36,
+     "components": {"fuel": 24081.67, "electricity": 1054.65, "employee": 1359.06, "other_expenses": 4707.61}},
+    {"period": "2025-Q3", "revenue": 39164.82, "ebitda": 10017.71, "pbt": 4887.07, "pat": 4653.33,
+     "components": {"fuel": 22013.84, "electricity": 868.07, "employee": 1308.63, "other_expenses": 4956.57}}
+  ]
+}

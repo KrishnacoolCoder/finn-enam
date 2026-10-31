@@ -199,6 +199,8 @@ class QuarterInput(BaseModel):
     ebitda:float|None=None
     pbt:float|None=None
     pat:float|None=None
+    verified:bool=False
+    evidence_note:str=Field(default='',max_length=3000)
 
 class TargetInput(BaseModel):
     ticker:str
@@ -209,10 +211,13 @@ class TargetInput(BaseModel):
     source_url:str
     statement:str=Field(min_length=5,max_length=1000)
     target_kind:str=Field(default='absolute',pattern='^(absolute|yoy_growth_pct)$')
+    quote:str=Field(min_length=5,max_length=3000)
+    basis:str=Field(pattern='^(standalone|consolidated)$')
+    tolerance:float=Field(default=0,ge=0,le=1e12)
 
 @app.post('/api/financials/quarter')
 def quarter_upsert(body:QuarterInput):
-    try:save_quarter(ticker_check(body.ticker),body.period,body.model_dump(include=set(METRICS)),body.source_url,body.basis,body.evidence_page)
+    try:save_quarter(ticker_check(body.ticker),body.period,body.model_dump(include=set(METRICS)),body.source_url,body.basis,body.evidence_page,body.verified,body.evidence_note)
     except ValueError as exc:raise HTTPException(400,str(exc)) from exc
     return {'ok':True,'note':'Recorded user-supplied numbers; not automatically PDF-verified.'}
 
@@ -229,7 +234,7 @@ def financial_quarters(ticker:str):return quarterly_snapshot(ticker_check(ticker
 
 @app.post('/api/financials/target')
 def create_target(body:TargetInput):
-    try:add_target(ticker_check(body.ticker),body.metric,body.period,body.target,body.unit,body.source_url,body.statement,body.target_kind)
+    try:add_target(ticker_check(body.ticker),body.metric,body.period,body.target,body.unit,body.source_url,body.statement,body.target_kind,body.quote,body.basis,body.tolerance)
     except ValueError as exc:raise HTTPException(400,str(exc)) from exc
     return {'ok':True,'note':'User-transcribed guidance target; source has not been automatically checked.'}
 
