@@ -45,7 +45,7 @@ Visit **http://127.0.0.1:8000**. API specification: **http://127.0.0.1:8000/docs
 | Digest | Configurable time window, portfolio scope, high-priority ranked events, Markdown export | Reflects indexed disclosures only |
 | Market signals | EOD daily return, volume vs prior 20-session average, editable thresholds | Yahoo Finance connection required; no intraday data |
 | Alerts | Persistent ticker/date/type triggered events, optional periodic polling | No device push notifications; server must stay running |
-| Document Q&A | Primary PDF/TXT uploads, chunk retrieval, source pages, optional OpenAI synthesis | Unsupported/scanned PDFs may lack text; no broker research |
+| Document Q&A | Primary PDF/TXT uploads, chunk retrieval, source pages, optional Gemini evidence selection | Unsupported/scanned PDFs may lack text; no broker research |
 | Finance PDFs | Table-first revenue, EBITDA, PBT, PAT candidate rows with source evidence | **Review-assisted**; never auto-verifies/saves numbers |
 | Quarterly comparisons | Arithmetic QoQ/YoY; matching reporting basis required | Need user-confirmed quarterly observations |
 | Guidance reconciliation | User-entered absolute or YoY-growth guidance vs recorded actual, source links | Manual target capture and human verification |
@@ -63,8 +63,8 @@ Visit **http://127.0.0.1:8000**. API specification: **http://127.0.0.1:8000/docs
 
 Copy `.env.example` locally and configure environment variables using your shell or hosting provider (this starter doesn't automatically read `.env`):
 
-- `OPENAI_API_KEY`: enables optional generative synthesis of retrieved primary sources; absent means extractive response.
-- `OPENAI_MODEL`: default `gpt-4o-mini`.
+- `GEMINI_API_KEY`: enables Gemini 2.5 Flash over retrieved primary excerpts; absent or failed calls use extractive mode. See `docs/GEMINI_RESEARCH.md` for setup.
+- Research model: `gemini-2.5-flash`, using the `google-genai` SDK.
 - `FINN_DATA_DIR`: path to persistent SQLite and indexed files (default `./data`).
 - `FINN_AUTO_POLL_MINUTES`: `0` by default, or `60` (must be >=30). Enables an optional in-process EOD watcher, which needs an **always-on backend**; it is not a real-time mobile notification service.
 

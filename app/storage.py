@@ -20,6 +20,11 @@ def init():
         CREATE TABLE IF NOT EXISTS documents (id INTEGER PRIMARY KEY AUTOINCREMENT, ticker TEXT NOT NULL, name TEXT NOT NULL, kind TEXT NOT NULL, source_url TEXT DEFAULT '', added TEXT NOT NULL, pages INTEGER DEFAULT 0);
         CREATE TABLE IF NOT EXISTS chunks (id INTEGER PRIMARY KEY AUTOINCREMENT, document_id INTEGER NOT NULL, page INTEGER NOT NULL, content TEXT NOT NULL, FOREIGN KEY(document_id) REFERENCES documents(id));
         CREATE INDEX IF NOT EXISTS chunks_doc_idx ON chunks(document_id);
+        CREATE TABLE IF NOT EXISTS research_answers (
+          ticker TEXT NOT NULL, question TEXT NOT NULL, document_hash TEXT NOT NULL,
+          payload TEXT NOT NULL, created TEXT NOT NULL,
+          PRIMARY KEY(ticker,question,document_hash)
+        );
         CREATE TABLE IF NOT EXISTS filing_pdf_text (
           ticker TEXT NOT NULL, url TEXT NOT NULL, content TEXT NOT NULL DEFAULT '',
           attempted TEXT NOT NULL, PRIMARY KEY(ticker,url)
@@ -46,6 +51,7 @@ def init():
         cols={r[1] for r in c.execute('PRAGMA table_info(documents)')}
         if 'auto_loaded' not in cols:c.execute('ALTER TABLE documents ADD COLUMN auto_loaded INTEGER NOT NULL DEFAULT 0')
         if 'content_sha256' not in cols:c.execute("ALTER TABLE documents ADD COLUMN content_sha256 TEXT NOT NULL DEFAULT ''")
+        if 'chunk_version' not in cols:c.execute('ALTER TABLE documents ADD COLUMN chunk_version INTEGER NOT NULL DEFAULT 1')
         c.execute("CREATE UNIQUE INDEX IF NOT EXISTS auto_report_identity ON documents(ticker,source_url) WHERE auto_loaded=1")
 
 def get_setting(k,default):
