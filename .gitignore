@@ -1,0 +1,39 @@
+# Python and test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local virtual environments and IDE files
+.venv/
+venv/
+env/
+.vscode/
+.idea/
+
+# Credentials and local environment (keep the safe example)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Runtime data and uploads (never expose private user documents)
+data/
+uploads/
+**/uploads/
+*.sqlite
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.db
+
+# ONE audited, source-backed public seed is intentionally tracked
+!seed/finn.sqlite3
+
+# Local archives, logs, OS files
+*.zip
+*.log
+.DS_Store
+Thumbs.db
