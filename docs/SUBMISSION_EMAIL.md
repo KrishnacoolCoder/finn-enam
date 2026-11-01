@@ -1,27 +1,25 @@
-# Submission email template — customize before sending
+To: assessment@enam.com
 
-**To:** assessment@enam.com
-
-**Subject:** ENAM - IIT screening - 2027
+Subject: ENAM - IIT screening - 2027
 
 Dear ENAM Team,
 
-Please find my submission for the FINN AI Engineer Build Challenge.
+Please find my submission: FINN, a mobile-first investment-intelligence and primary-source research prototype covering a 20-company NSE watchlist.
 
-**Mobile-accessible prototype:** [INSERT VERIFIED DEPLOYED URL]
+Live demo: https://finn-enam.onrender.com
+Repository: https://github.com/KrishnacoolCoder/finn-enam
 
-**GitHub repository:** [INSERT REPOSITORY URL]
+The Push workflow prioritises and groups exchange-linked announcements, collapses routine filings, generates time-windowed briefs, and supports configurable end-of-day price/volume alerts. The Pull workflow indexes company PDFs, retrieves evidence with TF-IDF, and returns file/page-cited passages. It also includes rule-based management-change extraction and review-assisted quarterly comparisons.
 
-**AI-assisted build history:** [INSERT REAL CONVERSATION EXPORT/SHARE URL]
+I used rule-based classification, deterministic arithmetic and TF-IDF before invoking an LLM, keeping common operations inexpensive and explainable. Models select evidence; the server inserts the original passages and citations rather than trusting unrestricted generated prose.
 
-I built FINN, a mobile-first financial-investment intelligence prototype that filters exchange disclosures into source-linked, relevance-ranked events and supports on-demand, primary-document-grounded company research. Its Push workflow includes a BSE RSS snapshot importer, explainable event grouping, configurable EOD market alerts and an exportable portfolio brief. Its Pull workflow supports PDF/TXT-based research with page citations, review-assisted financial-table extraction, QoQ/YoY calculations and manually verified management-guidance comparisons.
+Because exchanges can block automated access, an authenticated laptop collector uploads idempotently to the deployed app, with retained snapshots as fallback. This keeps the demo usable without claiming uninterrupted live coverage. News is shown only as market context and excluded from research to honour the primary-source rule. Model failures also fall back safely; Groq-backed cited responses were verified live.
 
-**Technical decisions:** FastAPI and SQLite support a small, runnable prototype; deterministic scoring, financial arithmetic and TF-IDF document retrieval minimize cost; optional model synthesis is limited to retrieved primary-source passages. Source PDFs remain linked and synthetic demonstrations are visibly labelled.
+I left out production authentication/tenant isolation, intraday streaming, device push and unattended financial verification. Next steps are durable storage, access controls, authorised exchange access, and a labelled retrieval/evidence-quality evaluation set.
 
-**Scope and tradeoffs:** NSE/BSE server-side access may be blocked, so live disclosure collection is represented by user-uploaded official BSE snapshots rather than claimed as continuous automation. PDF figures require manual review for units, table columns and reporting basis, and alerts are end-of-day rather than intraday or device push notifications. A production release would add authorized exchange data access, verified structured financial extraction, user authentication and scalable storage.
+The project passes 177 pytest tests; mobile layouts were checked at 360/390/430px. External-source availability and PDF accuracy remain explicit limitations.
 
-Thank you for considering my work.
+Thank you for considering my submission.
 
 Regards,
-[YOUR FULL NAME]
-[YOUR ROLL NUMBER / CONTACT DETAILS]
+[Your full name]

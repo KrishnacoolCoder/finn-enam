@@ -1,106 +1,359 @@
-# FINN — Financial Investment Agent
-### ENAM Holdings | AI Engineer Build Challenge | Consolidated Release 4
+# FINN - Financial Investment Agent
 
-**FINN** is a responsive Indian equity research and investment-intelligence prototype. It separates **Push** (relevance-ranked exchange disclosures, digest and configurable end-of-day signals) from **Pull** (source-grounded company research, PDF financial extraction and explicit management-guidance comparisons).
+A mobile-first Indian-equity intelligence and primary-source research prototype
+for the ENAM AI Engineer Build Challenge.
 
-**Scope honesty:** This is a working, *local* prototype, not a continuously updating exchange data terminal. NSE/BSE server requests may be blocked. The supported ingestion path is user-supplied official RSS snapshots (which retain original BSE PDF links). On-demand EOD price retrieval uses Yahoo Finance; connectivity may fail. No prices, returns or financial figures are invented.
+- [Live demo](https://finn-enam.onrender.com)
+- [GitHub repository](https://github.com/KrishnacoolCoder/finn-enam)
+- [Deployment health](https://finn-enam.onrender.com/health)
+- [API reference](https://finn-enam.onrender.com/docs)
 
-## Quick start — Windows
+## Verified scope
 
-1. Extract the ZIP. Open the inner `FINN_ENAM_RELEASE` folder in VS Code.
-2. Open **Terminal → New Terminal**.
-3. Run the following (PowerShell):
+Checked on **1 November 2026**: the deployed app was healthy, with **98 filings
+across 20 companies** and primary-report coverage for all 20 watchlist companies.
+The public seed contains 20 indexed reports spanning 1,194 PDF pages. These are
+dated observations, not guarantees of complete or continuously live coverage.
+
+The 20-company watchlist is illustrative, not ENAM's actual holdings. Its pinned
+catalogue contains annual reports **or** earnings-call transcripts; it is not a
+complete or guaranteed latest-report library for every company.
+
+| Workflow | Implemented |
+|---|---|
+| Push | Source-linked disclosures, deterministic classification/priority, deduplication, related-event grouping, collapsed routine notices and Markdown investor briefs |
+| EOD alerts | Price-change and volume-multiple rules using yfinance, recorded triggers, saved thresholds and event preferences |
+| Management changes | Regex/keyword extraction of person, role, action and effective date from headlines and available filing PDF text; unknown fields blank; no biographies |
+| Pull | Primary PDF/TXT indexing, page-aware chunks, TF-IDF retrieval and file/page-cited evidence selected by a model or extractive fallback |
+| Financial review | Candidate revenue/EBITDA/PBT/PAT extraction, source-linked quarterly records, QoQ/YoY arithmetic and sourced guidance comparisons |
+| Context | Separately labelled Google News headlines and Screener financial snapshots; neither enters research |
+| Mobile | Five bottom tabs, 24h/3d/7d digest picker, source cards, skeletons/retry states and a persistent Alerts screen |
+
+## ASCII architecture
+
+```text
+                  DISCLOSURE COLLECTION
+ BSE RSS + public company announcement directories
+              |                         |
+              v                         v
+  LAPTOP: collector.py         DEPLOYED: automatic_feed.py
+  local SQLite + loop         15-min checks while awake
+              |                         |
+  HTTPS POST /api/ingest                 |
+  X-Ingest-Token                        |
+              +------------+------------+
+                           v
+                   FASTAPI + SQLITE
+              dedupe -> rules -> grouping
+                           |
+                    Feed / brief / alerts
+
+ Pinned primary PDFs + user PDF/TXT uploads
+                           |
+                PDF blocks -> page chunks
+                           |
+              SQLite documents/chunks tables
+                           |
+             TF-IDF -> numbered source sentences
+                           |
+              Gemini -> Groq -> extractive
+                           |
+        validated IDs -> source text + [file, page]
+                           |
+                        Research UI
+
+ Google News RSS -> laptop -> /api/ingest/news -> news table
+                                                     |
+                                             Market context UI
+                                          (NO path to research)
+ yfinance -> EOD rules -> recorded market alerts
+ Screener financial snapshot -> separate context cache -> UI only
+
+                    SNAPSHOT / RESTART PATH
+ Laptop SQLite -> export seed/finn.sqlite3 -> reviewed Git commit
+                                               |
+                                               v
+                          app.deploy restores seed ONLY if
+                          the runtime database is missing
+```
+
+Classification does not call an LLM per announcement. Rules and deterministic
+arithmetic handle common operations cheaply and explainably; models are reserved
+for selecting relevant primary-source research evidence.
+
+## Local setup
+
+Docker uses Python 3.11; the laptop build was also tested on Python 3.13.9.
+Run from the repository root.
+
+### Windows PowerShell
 
 ```powershell
+git clone https://github.com/KrishnacoolCoder/finn-enam.git
+cd finn-enam
 py -3 -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install --no-compile --no-cache-dir -r requirements.txt
-python -m uvicorn app.main:app --reload
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m uvicorn app.deploy:app --reload
 ```
 
-Visit **http://127.0.0.1:8000**. API specification: **http://127.0.0.1:8000/docs**. Requires Python 3.11–3.13. If PowerShell refuses activation, run `.venv\Scripts\python.exe -m uvicorn app.main:app --reload` instead after installing with that interpreter.
+### Linux / macOS
 
-**Already running V3?** Back up the old project. You can replace the `app/`, `static/`, `tests/` and `docs/` folders and `requirements.txt` with this release. **Never overwrite your `data/` directory.** The application adds missing SQLite columns automatically; existing filings and reports are preserved. Do not copy `.venv/` from another computer. Restart the backend and hard-refresh the browser (`Ctrl+Shift+R`).
+```bash
+git clone https://github.com/KrishnacoolCoder/finn-enam.git
+cd finn-enam
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m uvicorn app.deploy:app --reload
+```
 
-## The 90-second real-data demo (no paid keys)
+Open [localhost:8000](http://127.0.0.1:8000) and
+[localhost:8000/docs](http://127.0.0.1:8000/docs). The direct interpreter commands
+do not require activating the environment or changing PowerShell policy.
 
-1. Open **Intelligence feed**. Click **Load verified BSE sample**. This explicitly loads the included BSE RSS snapshot taken **31 October 2026**—real source links, not a live feed. Or upload your own saved `.xml` / `.txt` file.
-2. Select **Last 7 days** *if you are testing near the snapshot date*. For later demonstrations choose an appropriate historical window; `/api/digest?hours=8760` supports up to one year. Observe NTPC results grouping and L&T's business transfer classification as **M&A**. Use **View original filings & sources** to open the PDF links.
-3. Choose **Build daily brief** on Overview, then **Download brief** for the source-linked Markdown report. By default, synthetic demo events are excluded.
-4. Select **AI research**, type `NTPC`, and upload the official company's quarterly financial results PDF. Under *Quarterly numbers & guidance comparison* choose *Extract candidate figures*.
-5. Inspect the reported page, table row, column header, standalone/consolidated basis and recognized unit. **Only after confirming the original PDF**, copy a normalized value. Set `2026-Q3` for July–September 2026, supply the exact BSE PDF URL and save it. Add comparable quarters to see correct QoQ/YoY calculations.
-6. Upload an actual annual report or earnings-call transcript, optionally supply its original URL, and ask a source-grounded question. Without an LLM key FINN returns relevant excerpts and citations; with one it drafts a grounded explanation.
-7. If connectivity permits, click **Refresh market data** to check 20 NSE tickers for configured EOD price/volume anomalies. Alert records survive restarts; **this is not intraday monitoring**.
+Use **`app.deploy:app`** for the seeded demo: it restores the seed before SQLite
+initialization. `app.main:app` alone initializes the schema without that restore.
+Existing runtime databases are preserved; do not delete one merely to update code.
 
-**Fictional demo:** For an offline sample research conversation click *Load demo examples* and ask about ticker `FINNDEMO`. All such records are explicitly tagged **SYNTHETIC DEMO**. The real-data investor brief excludes synthetic events unless asked otherwise.
+`.env.example` lists variable names, but dotenv files are **not automatically
+loaded**. Configure the process environment or the host's Environment page.
 
-## Functionality map
+## Environment variables
 
-| Capability | Implementation | Limitations |
-|---|---|---|
-| Watchlist | 20 NSE companies, sector mix, ticker-independent Q&A | Mock portfolio, no holdings/weights |
-| Filings | BSE RSS XML/TXT importer, provenance, deduplication, event grouping | User-uploaded snapshot, **not automatic live** NSE/BSE |
-| Materiality | Deterministic rules, categories, scores, explanations, routine-notice downranking | Heuristic; source filing should be reviewed |
-| Digest | Configurable time window, portfolio scope, high-priority ranked events, Markdown export | Reflects indexed disclosures only |
-| Market signals | EOD daily return, volume vs prior 20-session average, editable thresholds | Yahoo Finance connection required; no intraday data |
-| Alerts | Persistent ticker/date/type triggered events, optional periodic polling | No device push notifications; server must stay running |
-| Document Q&A | Primary PDF/TXT uploads, chunk retrieval, source pages, optional Gemini evidence selection | Unsupported/scanned PDFs may lack text; no broker research |
-| Finance PDFs | Table-first revenue, EBITDA, PBT, PAT candidate rows with source evidence | **Review-assisted**; never auto-verifies/saves numbers |
-| Quarterly comparisons | Arithmetic QoQ/YoY; matching reporting basis required | Need user-confirmed quarterly observations |
-| Guidance reconciliation | User-entered absolute or YoY-growth guidance vs recorded actual, source links | Manual target capture and human verification |
-| Frontend | Responsive dark UI, desktop sidebar, mobile bottom navigation | No phone app binary |
+| Variable | Purpose / default |
+|---|---|
+| `FINN_DATA_DIR` | Directory containing runtime `finn.sqlite3`; local default `data/`. Set before process startup. |
+| `INGEST_TOKEN` | Long random shared secret for laptop filing/news uploads. Must match on collector and server. Without server configuration, ingestion is disabled. |
+| `FINN_AUTO_ANNOUNCEMENTS` | `1` enables the server announcement scheduler. Docker enables it; ordinary local runs default to off. |
+| `GEMINI_API_KEY` | Optional SDK key for the configured `gemini-2.5-flash` model. |
+| `GROQ_API_KEY` | Optional backup, or the sole configured research provider. |
+| `GROQ_MODEL` | Default `openai/gpt-oss-120b`. The previous free-tier Llama default is migrated to this replacement. |
+| `FINN_AUTO_POLL_MINUTES` | Separate EOD market watcher: `0` disables it; values of at least 30 enable it. |
+| `FINN_BSE_SYNC_KEY` | Optional secret for administrative `/api/bse/live-sync`; separate from the collector token. |
 
-## Sources and accuracy
+Create keys in [Google AI Studio](https://aistudio.google.com/) or
+[Groq Console](https://console.groq.com/keys); keep them server-side. At the last
+live check, the configured Gemini request returned HTTP 404 and **Groq-backed
+cited answers were verified working**. Gemini is not claimed as a working live
+dependency. Missing/failed providers fall back to extractive evidence or
+`insufficient evidence`; account access and free-tier quotas still apply.
 
-- Corporate disclosure feed: original BSE RSS `.xml`/`.txt` supplied by the user, **not** scraped via blocked server requests. The ZIP contains the supplied historical snapshot under `sample_data/`.
-- Source documents: company-published annual reports, earnings calls and quarterly results. PDFs must be uploaded by the user; citations identify document/page. No broker notes or news are used for company research.
-- `yfinance` provides optional EOD price/volume. The application labels connection failures rather than supplying fake values.
-- PDF extractor only proposes cells from apparent accounting statement rows. It abstains on narrative-only pages or unknown units, and may still misread some multi-column PDFs. Values must be checked in the original filing before saving.
-- Rule priority is **not** a probability, price forecast, or personalized investment recommendation.
+## Laptop collector -> deployed app
 
-## Optional settings
-
-Copy `.env.example` locally and configure environment variables using your shell or hosting provider (this starter doesn't automatically read `.env`):
-
-- `GEMINI_API_KEY`: enables Gemini 2.5 Flash over retrieved primary excerpts; absent or failed calls use extractive mode. See `docs/GEMINI_RESEARCH.md` for setup.
-- Research model: `gemini-2.5-flash`, using the `google-genai` SDK.
-- `GROQ_API_KEY`: optional Groq backup, with the same evidence checks; `GROQ_MODEL` defaults to `openai/gpt-oss-120b`.
-- `FINN_DATA_DIR`: path to persistent SQLite and indexed files (default `./data`).
-- `FINN_AUTO_POLL_MINUTES`: `0` by default, or `60` (must be >=30). Enables an optional in-process EOD watcher, which needs an **always-on backend**; it is not a real-time mobile notification service.
-
-Deployment uses `Dockerfile` or `Procfile` to start on `$PORT`. Use persistent disk if you want your SQLite records to survive redeployments. **There is no authentication or tenant isolation; do not expose writable endpoints as a public multi-user service** without adding protection first. For a hiring review, private/local or controlled-demo usage is safest.
-
-## Verify
+Hosting IPs can be blocked by exchanges, and RSS has limited retention. The
+laptop provides another collection location, not guaranteed exchange access.
+Set the same `INGEST_TOKEN` locally and on the deployed service:
 
 ```powershell
-python -m pytest -q
-python -m compileall -q app
+$env:INGEST_TOKEN = 'replace-with-the-same-long-random-server-secret'
+# One cycle:
+.\.venv\Scripts\python.exe collector.py https://finn-enam.onrender.com
+# Or a 15-minute wait between completed cycles:
+.\.venv\Scripts\python.exe collector.py https://finn-enam.onrender.com --loop 15 --days 30
 ```
 
-Development checks include parser tests, real-snapshot deduplication, event grouping, document extraction rejection, source-cited calculations and API smoke tests. A browser screenshot/environment cannot substitute for validating your deployed URL: test it yourself before emailing ENAM.
+Each cycle:
 
-## Repository / structure
+1. Attempts BSE RSS and recent company-announcement directories for the fixed
+   portfolio. Directory records retain original BSE PDF URLs and publication
+   times, but are labelled secondary metadata rather than PDF-verified content.
+2. Deduplicates/stores filings locally and attempts bounded management-PDF text
+   enrichment. Failures preserve prior data.
+3. Collects Google News RSS title, publisher, timestamp and link in the separate
+   news table; it does not download article bodies.
+4. Exports the local SQLite DB to `seed/finn.sqlite3` **before** upload.
+5. Replays non-demo, source-linked local filings in batches to `/api/ingest`
+   using `X-Ingest-Token`. The server reclassifies/deduplicates them, including
+   equivalent BSE attachment URLs. News uses protected `/api/ingest/news`.
 
+The laptop must stay awake, connected and running the collector. The script does
+not install OS autostart or commit/push automatically. Failed uploads leave local
+data and the exported seed available for replay.
+
+### Publishing a refreshed seed
+
+Review the exported data, then:
+
+```powershell
+git add seed/finn.sqlite3
+git commit -m "Refresh public FINN seed"
+git push origin main
 ```
-FINN_ENAM_RELEASE/
-  app/                  # FastAPI routes, financial engine, BSE parser, retrieval, SQLite
-  static/               # HTML / CSS / JavaScript mobile-first interface
-  sample_data/          # historical original BSE RSS snapshot (user-provided)
-  sample_documents/     # explicitly synthetic FINNDEMO source samples
-  tests/                # unit and integration acceptance tests
-  docs/                 # architecture, demo, submission checklist/email
-  data/                 # locally generated SQLite — NOT committed to GitHub
-  requirements.txt
-  Dockerfile, Procfile
+
+The collector exports the **whole local database**, not a sanitized subset. It
+can contain document text, questions/answers, settings and financial records.
+Review before publishing; use a dedicated public-source collector database if
+also handling private documents. Original uploaded PDF binaries are not retained
+as a document archive: keep the originals for re-indexing.
+
+The older `scripts/make_seed.py` produces a reduced filing-only seed and removes
+research/financial data; it is not equivalent to the collector's full export.
+
+## Snapshot fallback and freshness
+
+- Failed or empty retrieval does not erase stored filings or fabricate new ones.
+  Original publication times remain unchanged.
+- An old snapshot can correctly produce no events in a recent window. Widen the
+  window for historical demonstrations instead of changing dates to fill it.
+- Docker enables approximately 15-minute announcement checks while the process
+  is awake. Host sleep pauses these checks; laptop collection is independent.
+- **Checked X min ago** describes collection status, not intraday prices, a new
+  filing's arrival, or complete exchange coverage. Successful directory access
+  does not prove the exchange returned every disclosure.
+- `app.deploy` copies the committed seed only when the runtime DB is missing.
+  It never intentionally overwrites an existing DB. A new seed is a bootstrap,
+  not an import mechanism for a running persistent database.
+
+## Research and numerical safeguards
+
+The primary-report catalogue pins URLs and SHA-256 hashes. Selecting a portfolio
+company ensures its catalogued report is indexed. Other syntactically valid NSE
+tickers need an uploaded primary PDF/TXT; syntax validation does not establish
+that a symbol is currently listed.
+
+PDF paragraph blocks reduce column interleaving. Roughly 800 word/punctuation
+token chunks stay within PDF pages. TF-IDF and topic filters retrieve evidence,
+reducing irrelevant overview/audit passages. Citations use one-based **PDF page
+indices**, which can differ from printed page numbers.
+
+Models return numbered source/passage IDs. The server resolves them to original
+text, validates the evidence and inserts up to four short `[file, page]` bullets.
+It does not display unrestricted generated prose. This sacrifices fluent
+synthesis for auditability; absent evidence produces abstention. Bounded 429
+retries and Gemini -> Groq -> extractive fallback preserve usability. Diagnostics
+expose safe failure classes, not keys or raw provider error bodies.
+
+SQLite caches answers by ticker, normalized question and corpus hash, with model,
+policy and configuration changes invalidating stale entries. Temporary failures
+and secondary-provider answers after a primary failure expire to allow recovery.
+
+Financial extraction proposes cells, not audited figures. Real quarterly saves
+require HTTPS source URLs; period, units, basis, page and user-verification status
+remain explicit. QoQ/YoY avoids misleading zero/negative-base percentages and
+labels loss/profit transitions. Guidance comparisons use sourced statements and
+quotes against comparable stored actuals. Unverified figures stay labelled;
+arithmetic is not independent verification. The NTPC seed remains unverified,
+and derived EBITDA is identified as derived.
+
+## Deployment
+
+### Render - current demo
+
+1. Create a Docker web service from the repository's `main` branch and root
+   `Dockerfile`.
+2. The image runs `uvicorn app.deploy:app --host 0.0.0.0 --port 7860 --workers 1`.
+   Configure service access to port 7860 and health check `/health`. Keep one
+   worker with the current in-process schedulers and SQLite.
+3. Configure environment/secrets. The current ephemeral demo uses
+   `FINN_DATA_DIR=/tmp/finn-data`; Docker defaults to `/home/user/app/data`.
+4. Set `INGEST_TOKEN` for laptop uploads and a provider key if wanted. Docker
+   enables announcement polling; EOD polling defaults to disabled.
+5. After deployment, verify `/health`, `/api/feed/status`,
+   `/api/reports/coverage`, source labels and an actual cited research response.
+   Successful startup does not establish external provider/exchange availability.
+
+Render's default filesystem is ephemeral. For lasting runtime data, use a
+persistent disk on an eligible paid service and set `FINN_DATA_DIR` under its
+writable mount, or move to managed storage. See
+[Render's disk documentation](https://render.com/docs/disks).
+
+### Docker locally
+
+```bash
+docker build -t finn .
+docker volume create finn-data
+docker run --rm -p 7860:7860 -v finn-data:/home/user/app/data finn
 ```
 
-More information: `docs/ARCHITECTURE.md`, `docs/DEMO_AND_SUBMISSION.md`, `docs/SUBMISSION_EMAIL.md`.
+Open [localhost:7860](http://127.0.0.1:7860). Supply optional secrets through
+environment/secret configuration, not committed files or image layers.
 
-## Non-goals and tradeoffs
+## Honest limitations and omissions
 
-This release focuses on a **thin-but-working investor workflow**: distinguish important filings from routine noise, preserve the chain to primary sources, retrieve actual filings, and perform only properly reviewed financial analysis. Exchange blocking prevents automatic official live sync. Automated results reconciliation at scale, management biography enrichment, mobile OS push alerts, voice, team collaboration, brokerage integrations and production authentication remain out of scope. The honest limitation is part of the engineering judgment ENAM asks candidates to demonstrate.
+- **Collection:** blocking, rolling retention, directory changes and host sleep
+  prevent guaranteed exhaustive/uninterrupted coverage. Snapshots preserve
+  availability, not freshness.
+- **Market scope:** yfinance provides optional EOD data, not a licensed intraday
+  terminal. There is no order execution, holdings accounting or return tracking.
+- **Research relevance:** TF-IDF can miss evidence. A valid citation alone does
+  not prove that an excerpt answers the question or concerns the intended
+  parent/subsidiary, period or basis. No measured retrieval-quality benchmark is
+  claimed; inspect source context.
+- **PDF accuracy:** block order is not a universal layout parser. Scanned PDFs
+  need OCR outside this build. Financial extraction, management regex fields and
+  guidance coverage can be incomplete; missing fields stay blank. Biographical
+  enrichment and unattended figure verification are intentionally absent.
+- **Secondary context:** news search matches are not independently verified
+  company attribution. News/Screener snapshots do not enter research or verify
+  financial figures; directory metadata aids discovery but is not PDF evidence.
+- **Security:** no general authentication, tenant isolation or production abuse
+  controls. The ingestion token protects collector endpoints only. Settings are
+  shared by the workspace. Use public documents: configured providers receive
+  selected excerpts. Production requires access controls and a data policy.
+- **Durability:** the seed restores a baseline, not intervening server writes.
+  The laptop exports its own DB, not the deployed DB; server-only uploads,
+  research/financial edits and alerts are not automatically backed up to it. A
+  browser can restore its saved alert preferences after a seed reset, but not
+  erased documents or settings for every device. Durable storage is still needed.
+- **Delivery and scale:** alerts are in-app/EOD, not mobile OS push or intraday
+  streaming. There is no distributed scheduler/queue, multi-instance deployment
+  design, production monitoring SLA or automatic deployment-backup policy.
 
-## Mobile interface
+## Tests and reviewer walkthrough
 
-The mobile UI has Brief / Feed / Research / Portfolio / Alerts navigation, a 24h / 3d / 7d digest picker, priority cards and collapsed routine filings. Alert preferences are stored in SQLite, with a browser backup for seed resets. Settings are shared by this FINN workspace; the full feed is independent of alert event selections. See [the mobile test checklist](docs/MOBILE_UI_TEST_CHECKLIST.md) for the 360/390/430px acceptance checks.
+The latest code passed **177 pytest tests**. Provider calls are mocked in tests;
+this is not a claim of exhaustive live-model accuracy. Separate live checks
+verified healthy deployment, source/coverage status and Groq-backed citations.
+Mobile Chromium emulation passed 360/390/430px checks for no overflow, 44px targets,
+priority/routine behavior, loading/retry, stale-response guards, settings reload
+and simulated reset recovery. Physical-phone Safari/Android keyboard and safe-area
+checks remain manual follow-ups.
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m compileall -q app
+```
+
+1. **Brief:** switch 24h/3d/7d, inspect priority events and download a brief.
+2. **Feed:** inspect a high-priority card, its original sources and routine bucket.
+   Filters & tools also contains manual snapshot tools.
+3. **Research:** select a catalogued company or upload a primary PDF for another
+   ticker. Try the five cards; inspect citations and missing-evidence behavior.
+4. **Quarterly review:** check the original PDF's units, period and basis before
+   verifying figures. Do not treat a calculated result as source verification.
+5. **Alerts:** save thresholds/types and reload. These preferences affect the
+   alert list; the complete feed remains independently available.
+
+Synthetic examples are explicitly tagged and excluded from the normal brief.
+
+## Next steps
+
+1. Authentication, per-user workspaces, rate limits and audit logging.
+2. Durable runtime storage, a scheduled collector/queue independent of web-host
+   sleep, and tested backup/restore.
+3. Authorized exchange access and measurements of missed/duplicate disclosures.
+4. A labelled evaluation set for retrieval relevance, entity/period/basis
+   consistency, evidence selection and figure extraction; measured layout/OCR
+   improvements with review controls.
+5. Broader report coverage and explicit notification delivery after those
+   foundations are reliable.
+
+## Project map
+
+```text
+app/                  FastAPI, ingestion, rules, research, finance, SQLite
+static/               Complete HTML / CSS / JavaScript mobile interface
+collector.py          Laptop collection, seed export and authenticated replay
+sample_data/          Source catalogue, snapshots, NTPC financial manifest
+seed/finn.sqlite3     Public bootstrap database
+tests/                Unit and integration tests
+docs/                 Feature details, checks and submission email draft
+data/                 Ignored local runtime DB and logs
+Dockerfile            Single-worker production image
+```
+
+More detail: [automatic collection](docs/AUTOMATIC_SIGNAL_FEED.md),
+[research providers](docs/GEMINI_RESEARCH.md),
+[management extraction](docs/MANAGEMENT_CHANGES.md),
+[financial review](docs/FINANCIAL_REVIEW_5_MINUTES.md),
+[mobile checks](docs/MOBILE_UI_TEST_CHECKLIST.md) and
+[covering email draft](docs/SUBMISSION_EMAIL.md).
