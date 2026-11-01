@@ -19,6 +19,11 @@ I left out production authentication/tenant isolation, intraday streaming, devic
 
 The project passes 177 pytest tests; mobile layouts were checked at 360/390/430px. External-source availability and PDF accuracy remain explicit limitations.
 
+AI tools used during development (shared references):
+ChatGPT reference 1: https://chatgpt.com/s/cx_6ae682b6820c8191a9a3262a987984f3
+ChatGPT reference 2: https://chatgpt.com/share/6ae680e0-2658-83ee-a29d-7b5554d73eb0
+Claude reference: https://claude.ai/share/43158226-cf4c-4ce6-8bc9-1ef19a7a3a6c
+
 Thank you for considering my submission.
 
 Regards,
